@@ -1,0 +1,42 @@
+[project]
+name = "users-auth"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.11",
+    "grpcio>=1.70.0",
+    "grpcio-tools>=1.70.0",
+    "httpx-oauth>=0.16.1",
+    "makefun>=1.15.6",
+    "pwdlib[argon2]>=0.2.1",
+    "pydantic-settings>=2.8.1",
+    "pydantic[email]>=2.10.6",
+    "pyjwt>=2.10.1",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.9",
+]
+sessions-memcached = [
+    "pymemcache>=4.0.0",
+]
+sessions-rdbms = [
+    "alembic>=1.15.1",
+    "asyncpg>=0.30.0",
+    "sqlalchemy>=2.0.38",
+]
+users-rdbms = [
+    "alembic>=1.15.1",
+    "asyncpg>=0.30.0",
+    "sqlalchemy>=2.0.38",
+]
+
+[tool.ruff]
+fix = true
+line-length = 120
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2

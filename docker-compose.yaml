@@ -1,0 +1,141 @@
+name: "users-auth"
+
+
+volumes:
+  _sessions-rdbms-data:
+  _users-rdbms-data:
+  _rdbms-data:
+
+
+services:
+  app:
+    env_file: .env
+    build:
+      context: ./
+      args:
+        - SESSIONS_PROVIDER=${SESSIONS_PROVIDER:?Variable not set}
+        - USERS_PROVIDER=${USERS_PROVIDER:?Variable not set}
+    container_name: ${COMPOSE_PROJECT_NAME}-app
+    image: ${COMPOSE_PROJECT_NAME}-app__sessions-${SESSIONS_PROVIDER:?Variable not set}__users-${USERS_PROVIDER:?Variable not set}
+    ports:
+      - 8082:80
+      - ${GRPC_PORT}:${GRPC_PORT}
+    volumes:
+      - ./src:/app/src
+      - ./protos:/app/src/protos
+    command: >
+      --port 80 --host 0.0.0.0 --reload
+    tty: true
+    stdin_open: true
+
+  rdbms:
+    profiles:
+      - sessions-rdbms
+      - users-rdbms
+    env_file: .env  # see: https://github.com/docker/compose/issues/9443
+    image: postgres:17.0-alpine3.20
+    container_name: ${COMPOSE_PROJECT_NAME}-rdbms
+    environment:
+      - POSTGRES_DB=${SESSIONS_PROVIDER_DB_NAME:-${USERS_PROVIDER_DB_NAME:-}}
+      - POSTGRES_USER=${SESSIONS_PROVIDER_DB_USER:-${USERS_PROVIDER_DB_USER:-}}
+      - POSTGRES_PASSWORD=${SESSIONS_PROVIDER_DB_PASSWORD:-${USERS_PROVIDER_DB_PASSWORD:-}}
+    expose:
+      - ${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}
+    ports:
+      - ${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}:${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}
+    volumes:
+      - _rdbms-data:/var/lib/postgresql/data
+    command: >
+      -c wal_level=logical -p ${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "psql -U ${SESSIONS_PROVIDER_DB_USER:-${USERS_PROVIDER_DB_USER:-}} -d ${SESSIONS_PROVIDER_DB_NAME:-${USERS_PROVIDER_DB_NAME:-}} -c 'SELECT 1' || exit 1"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  sessions-rdbms:
+    profiles:
+      - sessions-rdbms-separate
+    env_file: .env  # see: https://github.com/docker/compose/issues/9443
+    image: postgres:17.0-alpine3.20
+    container_name: ${COMPOSE_PROJECT_NAME}__sessions-rdbms
+    environment:
+      - POSTGRES_DB=${SESSIONS_PROVIDER_DB_NAME:-}
+      - POSTGRES_USER=${SESSIONS_PROVIDER_DB_USER:-}
+      - POSTGRES_PASSWORD=${SESSIONS_PROVIDER_DB_PASSWORD:-}
+    expose:
+      - ${SESSIONS_PROVIDER_DB_PORT:-5432}
+    ports:
+      - ${SESSIONS_PROVIDER_DB_PORT:-5432}:${SESSIONS_PROVIDER_DB_PORT:-5432}
+    volumes:
+      - _sessions-rdbms-data:/var/lib/postgresql/data
+    command: >
+      -c wal_level=logical -p ${SESSIONS_PROVIDER_DB_PORT:-5432}
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U ${SESSIONS_PROVIDER_DB_USER:-} -d ${SESSIONS_PROVIDER_DB_NAME:-} -c 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  users-rdbms:
+    profiles:
+      - users-rdbms-separate
+    env_file: .env  # see: https://github.com/docker/compose/issues/9443
+    image: postgres:17.0-alpine3.20
+    container_name: ${COMPOSE_PROJECT_NAME}__users-rdbms
+    environment:
+      - POSTGRES_DB=${USERS_PROVIDER_DB_NAME:-}
+      - POSTGRES_USER=${USERS_PROVIDER_DB_USER:-}
+      - POSTGRES_PASSWORD=${USERS_PROVIDER_DB_PASSWORD:-}
+    expose:
+      - ${USERS_PROVIDER_DB_PORT:-5432}
+    ports:
+      - ${USERS_PROVIDER_DB_PORT:-5432}:${USERS_PROVIDER_DB_PORT:-5432}
+    volumes:
+      - _users-rdbms-data:/var/lib/postgresql/data
+    command: >
+      -c wal_level=logical -p ${USERS_PROVIDER_DB_PORT:-5432}
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U ${USERS_PROVIDER_DB_USER:-} -d ${USERS_PROVIDER_DB_NAME:-} -c 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  sessions-memcached:
+    profiles:
+      - sessions-memcached
+    env_file: .env
+    image: memcached:1.6.31-alpine3.20
+    container_name: ${COMPOSE_PROJECT_NAME}__sessions-memcached
+    ports:
+      - ${SESSIONS_PROVIDER_MEMCACHED_PORT:-11211}:11211
+    restart: always
+    command:
+      - --memory-limit=64
+      - --conn-limit=1024
+      - --threads=4
+
+  localinfra:  # NB: botocore does not support URLs with underscores
+    profiles:
+      - sessions-dynamodb
+      - users-dynamodb
+    image: localstack/localstack:stable
+    container_name: ${COMPOSE_PROJECT_NAME}--local_infra
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"  # external services port range
+    environment:
+      - SERVICES=s3
+      - DEBUG=${DEBUG:-0}
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./local_infra_volume:/var/lib/localstack"
+      # - ./local_infra/scripts/boot.sh:/etc/localstack/init/boot.d/boot.sh
+      # - ./local_infra/scripts/ready.sh:/etc/localstack/init/ready.d/ready.sh
+      # - ./local_infra/scripts/shutdown.sh:/etc/localstack/init/shutdown.d/shutdown.sh

@@ -1,0 +1,11 @@
+.vscode/
+
+.tool-versions
+
+.venv/
+__pycache__/
+.pytest_cache/
+
+
+local_infra/
+local_infra_volume/

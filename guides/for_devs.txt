@@ -1,0 +1,63 @@
+########################################################################################################################
+
+INIT stage:
+  - fail with with simple message to the user on every unfulfilled required step
+
+  1 - init the global (singleton) AppConfig instance from the '/config/app' module - container for the different config namespaces:
+      - each namespace is in its own module in the '/config/' package:
+        - AUTH
+        - SESSIONS
+        - USERS
+        - GRPC
+        - WEBHOOKS (?)
+        - ...
+      - each namespace defines its own:
+        - common ENV_PREFIX
+        - the NAME, TYPE and IF_IS_REQUIRED of the config values its responsible for
+        - a confg may be dependant on other configs in the same namespace, but there are no cross-namespace dependencies
+      - optional validation logic for these configs, failing on every failed validation
+
+  - init the services, each in its own sub-package in the '/services/' package:
+  2 - init the users service:
+      - init a global (singleton) instance of UsersService in the '/services/users/service' module
+      - init the specific users StorageProvider from the '/services/users/providers/' package,
+        based on the AppConfig.USERS.PROVIDER and the AppConfig.USERS.PROVIDER_CONFIG configs
+  3 - int the sessions service:
+      - init a global (singleton) instance of SessionsService in the '/services/sessions/service' module
+      - init the specific sessions StorageProvider from the '/services/sessions/providers/' package,
+        based on the AppConfig.SESSIONS.PROVIDER and the AppConfig.SESSIONS.PROVIDER_CONFIG configs
+  4 - init the auth service:
+      - init the specific OAuth2Providers in the '/services/auth/provders' module,
+        based on the AppConfig.OAUTH2.ENABLED_PROVIDERS config
+      - create the authenticaton schemes in the '/services/auth/schemes' module:
+        - predefined (static) for local auth
+        - dynamic for OAuth2 auth, based on the AppConfig.OAUTH2.ENABLED_PROVIDERS config
+      - init three global instance of AuthService in the '/services/auth/service' module,
+        based on the authenticaton schemes from the '/services/auth/schemes' module
+  5 - validate the sessions StorageProvider is reachable, fail if it isn't
+  6 - validate the users StorageProvider is reachable, fail if it isn't
+
+########################################################################################################################
+
+OAuth2 provider:
+  - all of the steps are required for an OAuth2 provider to be usable/visible by the API or to be fully removed
+  - if the steps are performed in the specified order, the service will continue working without issues
+    even if only some of the steps are implemented (i.e. only step 1; only 1 and 2; only 1, 2, and 3)
+
+  I. creating a new one:
+    - in 'config.auth' (both steps are required to allow reading configuration for a new provider):
+      1 - a new 'OAuth2ProviderConfig' child class
+      2 - a new entry in the 'OAuth2Provider' enum with the class from above
+    - in 'services.auth.providers' (both steps are required to allow for the API to actually use the configuration):
+      3 - a new 'BaseOAuth2' child class
+      4 - a new entry in the '_provider_to_client' dict with the class from above
+          - the API is designed to be provider-agnostic and pick up the provider dynamically based on the incomming Request,
+            so all of those clases are module-private and exposed only via the 'services.auth.providers.oauth2_clients' map
+
+  II. deleting an existing one:
+    - in 'services.auth.providers'
+      1 - delete the entry from the '_provider_to_client' dict
+      2 - delete the 'BaseOAuth2' child class
+    - in 'config.auth':
+      3 - delete the entry in the 'OAuth2Provider' enum
+      4 - delete the 'OAuth2ProviderConfig' child class

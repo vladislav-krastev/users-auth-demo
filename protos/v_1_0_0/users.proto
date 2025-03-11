@@ -1,0 +1,16 @@
+// edition = "2023";
+syntax = "proto3";
+
+// A gRPC service for `Users`.
+service Users {
+    // Check if a provided Auth token is valid.
+    rpc IsValidToken(AuthTokenRequest) returns (AuthTokenIsValid) {}
+}
+
+message AuthTokenRequest {
+    string token = 1;
+}
+
+message AuthTokenIsValid {
+    bool is_valid = 1;
+}
