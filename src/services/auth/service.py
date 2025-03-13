@@ -63,20 +63,18 @@ class _UserAuthService:
         :raise InvalidTokenError:
             If either the `Session` or the `User` couldn't be determined from `token`.
 
-        :return UserAuthResult:
+        :return exceptions.UserAuthResult:
         """
         jwt = JWT.decode(token)
-        # if not jwt.validate_provider():
-        #     raise exceptions.InvalidTokenError()
         session = await SessionsService.get(jwt.sub, jwt.jti)
         if session is None or not session.is_valid:
-            raise exceptions.InvalidTokenError()
+            raise exceptions.InvalidTokenError("No valid session found for provided token")
         if session_only:
             return UserAuthResult(jwt, session)
         user = await UsersService.get_unique_by(self.__user_class, id=jwt.sub)
         # TODO: raise something for FORBIDDEN error ?
         if user is None or user.is_deleted:
-            raise exceptions.InvalidTokenError()
+            raise exceptions.InvalidTokenError("No valid user found for provided token")
         return UserAuthResult(jwt, session, user)
 
 

@@ -90,17 +90,7 @@ async def get_cookie(
             headers={"WWW-Authenticate": "Cookie"},
         )
     jwt = JWT.create_for_user(user, AppConfig.LOCAL_AUTH.COOKIE_EXPIRE_MINUTES, "local")
-    if not await SessionsService.create(
-        Session(
-            id=jwt.jti,
-            user_id=user.id,
-            created_at=jwt.iat,
-            expires_at=jwt.exp,
-            is_valid=True,
-            provider="local",
-            type="cookie",
-        )
-    ):
+    if not await SessionsService.create(Session.from_jwt(jwt, type="cookie")):
         raise SERVICE_UNAVAILABLE_EXCEPTION
     response.set_cookie(
         key=AppConfig.LOCAL_AUTH.COOKIE_NAME,
@@ -142,17 +132,7 @@ async def get_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     jwt = JWT.create_for_user(user, AppConfig.LOCAL_AUTH.ACCESS_TOKEN_EXPIRE_MINUTES, "local")
-    if not await SessionsService.create(
-        Session(
-            id=jwt.jti,
-            user_id=user.id,
-            created_at=jwt.iat,
-            expires_at=jwt.exp,
-            is_valid=True,
-            provider="local",
-            type="token",
-        )
-    ):
+    if not await SessionsService.create(Session.from_jwt(jwt, type="token")):
         raise SERVICE_UNAVAILABLE_EXCEPTION
     response.headers["Cache-Control"] = "no-store"
     return AccessToken(access_token=jwt.encode())
@@ -200,17 +180,7 @@ async def _jwt_from_oauth2_access_token(provider: OAuth2Provider, client: BaseOA
             return None
 
     jwt = JWT.create_for_user(user, AppConfig.OAUTH2.config_for(provider).ACCESS_TOKEN_EXPIRE_MINUTES, provider)
-    if not await SessionsService.create(
-        Session(
-            id=jwt.jti,
-            user_id=user.id,
-            created_at=jwt.iat,
-            expires_at=jwt.exp,
-            is_valid=True,
-            provider=provider,
-            type="token",
-        )
-    ):
+    if not await SessionsService.create(Session.from_jwt(jwt, type="token")):
         return None
     return jwt
 

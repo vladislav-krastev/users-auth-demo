@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import pydantic
 from pydantic_core.core_schema import ValidationInfo
 
+from services.auth.models import JWT
 from utils import validators
 
 from .types import SESSION_PROVIDER, SESSION_TYPE
@@ -37,3 +38,15 @@ class Session(pydantic.BaseModel):
     @pydantic.field_serializer("created_at", "expires_at", when_used="json")
     def _serialize_dates(self, v: datetime) -> str:
         return str(v)
+
+    @staticmethod
+    def from_jwt(jwt: JWT, type: SESSION_TYPE) -> "Session":
+        return Session(
+            id=jwt.jti,
+            user_id=uuid.UUID(jwt.sub),
+            created_at=jwt.iat,
+            expires_at=jwt.exp,
+            is_valid=True,
+            provider=jwt.iss,
+            type=type,
+        )

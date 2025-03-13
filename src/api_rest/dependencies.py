@@ -10,19 +10,18 @@ from fastapi.security import (
     OAuth2PasswordRequestFormStrict,
 )
 
-from api_rest.schemas.common import PaginationOffsetLmitRequest
-from config import AppConfig
-from services.auth import AuthAdminUserService, AuthAnyUserService, AuthNormalUserService, UserAuthResult
-from services.users import AdminUser, BaseUser, NormalUser
-from utils import exceptions
-
-from .schemas.auth import (
+from api_rest.schemas.auth import (
     local_cookie_scheme,
     local_cookie_scheme_basic_creds,
     local_token_admin_scheme,
     local_token_normal_scheme,
     oauth2_token_schemas,
 )
+from api_rest.schemas.common import PaginationOffsetLmitRequest
+from config import AppConfig
+from services.auth import AuthAdminUserService, AuthAnyUserService, AuthNormalUserService, UserAuthResult
+from services.users import AdminUser, BaseUser, NormalUser
+from utils import exceptions
 
 
 PaginationOffsetLmitDependency = typing.Annotated[PaginationOffsetLmitRequest, Depends()]

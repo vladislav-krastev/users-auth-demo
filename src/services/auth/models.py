@@ -1,6 +1,6 @@
 import hashlib
 import typing
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 import pydantic
@@ -23,12 +23,12 @@ class JWT(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    iss: str = ""
-    aud: str = ""
+    iss: SESSION_PROVIDER
+    aud: str
     iat: datetime
     nbf: datetime = None  # type: ignore
     exp: datetime
-    jti: str = ""
+    jti: str
     sub: str
 
     @pydantic.field_validator("iat", "nbf", "exp")
@@ -39,13 +39,13 @@ class JWT(pydantic.BaseModel):
     @classmethod
     def create_for_user(cls, user: BaseUser, expire_mins: int, provider: SESSION_PROVIDER) -> "JWT":
         """Create a new `JWT` based on the provided `User` and aditional configs."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + timedelta(minutes=expire_mins)
         hash_from = user.username if user.email is None else str(user.email)
         token_id = hashlib.md5((hash_from + str(now.timestamp())).encode()).hexdigest()
         return JWT(
-            # iss="users-auth",  # TODO: config for APP_NAME, where else to use it?
-            # aud=str(provider),  # NOTE: for external auth, the 'iss' and 'aud' are technically reversed
+            iss=provider,
+            aud=AppConfig.APP_NAME,
             iat=now,
             exp=expires_at,
             jti=token_id,
@@ -66,22 +66,28 @@ class JWT(pydantic.BaseModel):
 
     @classmethod
     def decode(cls, token: str) -> "JWT":
-        """Try decoding the `token` string to a valid new `JWT`."""
+        """Decode the `token` string to a valid new `JWT`.
+
+        :raise exceptions.InvalidJWTError:
+            If a valid `JWT` couldn't be created.
+        """
         try:
-            return JWT(
+            res = JWT(
                 **jwt.decode(
                     token,
                     key=AppConfig.SECRET_KEY,
                     algorithms=[_ALGORITHM],
-                    # issuer="users-auth",
+                    audience=AppConfig.APP_NAME,
+                    options={"verify_signature": True},
                 )
             )
         except (jwt.exceptions.InvalidTokenError, pydantic.ValidationError) as err:
             raise exceptions.InvalidJWTError(err.args)
-
-    def validate_provider(self) -> bool:
-        """Validate the auth provider of the `JWT` is still enabled."""
-        return self.aud == "local" or self.aud in AppConfig.OAUTH2.ENABLED_PROVIDERS
+        if res.iss != "local" and res.iss not in AppConfig.OAUTH2.ENABLED_PROVIDERS:
+            raise exceptions.InvalidJWTError(f"Invalid 'iss': {res.iss}")
+        if res.aud != AppConfig.APP_NAME:
+            raise exceptions.InvalidJWTError(f"Invalid 'aud': {res.aud}")
+        return res
 
 
 class Cookie(pydantic.BaseModel):
