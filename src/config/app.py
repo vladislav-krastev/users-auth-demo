@@ -17,6 +17,7 @@ class _AppConfig(_utils.BaseSettings, singleton.SingletonPydantic):
 
     model_config = SettingsConfigDict(frozen=False)
 
+    APP_NAME: str
     HOST_URL: str
     SECRET_KEY: str
 

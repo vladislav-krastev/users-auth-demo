@@ -7,7 +7,7 @@ from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token
 
 from api_rest.dependencies import (
     AnyUserDependency,
-    ExternalAuthEnabledDependency,
+    ExternalAuthIsEnabledDependency,
     PasswordRequestOAuth2Dependency,
     PasswordRequestSimpleDependency,
     raise_if_local_auth_disabled,
@@ -164,7 +164,7 @@ async def get_token(
 
 __router_auth_external = APIRouter(
     tags=["Authentication - External"],
-    dependencies=[ExternalAuthEnabledDependency],
+    dependencies=[ExternalAuthIsEnabledDependency],
 )
 
 
