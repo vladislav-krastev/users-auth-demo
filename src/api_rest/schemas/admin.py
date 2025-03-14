@@ -36,9 +36,9 @@ class AdminResponse(pydantic.BaseModel):
     created_at: datetime
     # logins_from: list[typing.Any]
 
-    @pydantic.field_serializer("id", "created_at", when_used="json")
-    def _to_string(self, v: uuid.UUID | datetime) -> str:
-        return str(v)
+    @pydantic.field_serializer("created_at", when_used="json")
+    def _serialize_dates(self, v: datetime) -> str:
+        return str(v.replace(microsecond=0))
 
 
 class AdminGetUserResponse(NormalUser):

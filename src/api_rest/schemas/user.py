@@ -13,6 +13,10 @@ class UserBaseResponse(pydantic.BaseModel):
     username: str
     created_at: datetime = pydantic.Field(default=None)  # type: ignore
 
+    @pydantic.field_serializer("created_at", when_used="json")
+    def _serialize_dates(self, v: datetime) -> str:
+        return str(v.replace(microsecond=0))
+
 
 class UserRegisterRequest(pydantic.BaseModel):
     """Request body for registering a new `User`."""

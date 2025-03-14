@@ -50,9 +50,9 @@ class BaseUser(EnchancedModelMixin, pydantic.BaseModel, FieldsWithMetaMixin):
     is_admin: bool
     is_admin_super: bool
     logins_from: list[USER_LOGIN_PROVIDER] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(microsecond=0))
     is_deleted: bool = Field(default=False)
-    deleted_at: datetime = Field(default=datetime.min.replace(tzinfo=UTC))
+    deleted_at: datetime = Field(default=datetime.min.replace(microsecond=0, tzinfo=UTC))
 
     @pydantic.field_validator("created_at", "deleted_at")
     @classmethod
@@ -69,7 +69,7 @@ class BaseUser(EnchancedModelMixin, pydantic.BaseModel, FieldsWithMetaMixin):
 
     @pydantic.field_serializer("created_at", "deleted_at", when_used="json")
     def _serialize_dates(self, v: datetime) -> str:
-        return str(v)
+        return str(v.replace(microsecond=0))
 
     @classmethod
     @cache
