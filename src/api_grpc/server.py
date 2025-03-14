@@ -16,16 +16,16 @@ log = logging.getLogger("grpc")
 
 
 class GrpcServer:
-    __slots__ = ("__port", "__server", "__task")
+    __slots__ = ("__server", "__port", "__task")
 
     def __init__(self, port: int = AppConfig.GRPC.PORT):
-        self.__port = port
-        self.__task: asyncio.Task | None = None
         self.__server = grpc.aio.server()
         users_pb2_grpc.add_UsersServicer_to_server(
             UsersServicer(),
             self.__server,
         )
+        self.__port = port
+        self.__task: asyncio.Task | None = None
         self.__server.add_insecure_port(f"[::]:{self.__port}")
 
     async def start(self) -> None:
@@ -33,8 +33,11 @@ class GrpcServer:
 
         Is idempotent.
         """
+        if not AppConfig.GRPC.IS_ENABLED:
+            log.info("disabled")
+            return
         if self.__task is None:
-            log.info(f"starting server on port '{self.__port}'...")
+            log.info(f"server starting on port '{self.__port}'...")
             await self.__server.start()
             self.__task = asyncio.create_task(self.__server.wait_for_termination())
         log.info(f"server listening on port '{self.__port}'")
