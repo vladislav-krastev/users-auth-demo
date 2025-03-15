@@ -63,7 +63,7 @@ class _UserAuthService:
         :raise InvalidTokenError:
             If either the `Session` or the `User` couldn't be determined from `token`.
 
-        :return exceptions.UserAuthResult:
+        :return UserAuthResult:
         """
         jwt = JWT.decode(token)
         session = await SessionsService.get(jwt.sub, jwt.jti)

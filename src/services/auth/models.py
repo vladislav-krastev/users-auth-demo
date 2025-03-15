@@ -38,7 +38,7 @@ class JWT(pydantic.BaseModel):
     @classmethod
     def create_for_user(cls, user: BaseUser, expire_mins: int, provider: SESSION_PROVIDER) -> "JWT":
         """Create a new `JWT` based on the provided `User` and aditional configs."""
-        now = datetime.now(UTC)
+        now = datetime.now(UTC).replace(microsecond=0)
         expires_at = now + timedelta(minutes=expire_mins)
         hash_from = user.username if user.email is None else str(user.email)
         token_id = hashlib.md5((hash_from + str(now.timestamp())).encode()).hexdigest()

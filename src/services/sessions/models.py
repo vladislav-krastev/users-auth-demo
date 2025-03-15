@@ -23,7 +23,7 @@ class Session(pydantic.BaseModel):
     @pydantic.computed_field  # type: ignore[prop-decorator]
     @property
     def is_expired(self) -> bool:
-        return self.expires_at < datetime.now(UTC)
+        return self.expires_at < datetime.now(UTC).replace(microsecond=0)
 
     @pydantic.field_validator("created_at", "expires_at")
     @classmethod
