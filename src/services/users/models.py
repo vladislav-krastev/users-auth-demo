@@ -56,8 +56,8 @@ class BaseUser(EnchancedModelMixin, pydantic.BaseModel, FieldsWithMetaMixin):
 
     @pydantic.field_validator("created_at", "deleted_at")
     @classmethod
-    def _validate_dates(cls, v: datetime) -> datetime:
-        return validators.datetime_has_timezone_utc(cls.__name__, "created_at", v)
+    def _validate_datetimes(cls, v: datetime, info: pydantic.ValidationInfo) -> datetime:
+        return validators.datetime_has_timezone_utc(cls.__name__, str(info.field_name), v)
 
     @pydantic.field_serializer("id", when_used="always")
     def _serialize_id(self, v: uuid.UUID) -> str:

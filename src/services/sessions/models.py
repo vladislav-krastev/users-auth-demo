@@ -2,7 +2,6 @@ import uuid
 from datetime import UTC, datetime
 
 import pydantic
-from pydantic_core.core_schema import ValidationInfo
 
 from services.auth.models import JWT
 from utils import validators
@@ -28,8 +27,8 @@ class Session(pydantic.BaseModel):
 
     @pydantic.field_validator("created_at", "expires_at")
     @classmethod
-    def _validate_datetimes(cls, dt: datetime, info: ValidationInfo) -> datetime:
-        return validators.datetime_has_timezone_utc(cls.__name__, str(info.field_name), dt)
+    def _validate_datetimes(cls, v: datetime, info: pydantic.ValidationInfo) -> datetime:
+        return validators.datetime_has_timezone_utc(cls.__name__, str(info.field_name), v)
 
     @pydantic.field_serializer("user_id", when_used="always")
     def _serialize_user_id(self, v: uuid.UUID) -> str:

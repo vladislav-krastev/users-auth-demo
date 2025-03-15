@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 import pydantic
-from pydantic_core.core_schema import ValidationInfo as pydantic_ValidationInfo
 
 from config import AppConfig
 from services.sessions.types import SESSION_PROVIDER
@@ -33,7 +32,7 @@ class JWT(pydantic.BaseModel):
 
     @pydantic.field_validator("iat", "nbf", "exp")
     @classmethod
-    def _validate_timestamps(cls, v: datetime, info: pydantic_ValidationInfo) -> datetime:
+    def _validate_datetimes(cls, v: datetime, info: pydantic.ValidationInfo) -> datetime:
         return validators.datetime_has_timezone_utc(cls.__name__, str(info.field_name), v)
 
     @classmethod
