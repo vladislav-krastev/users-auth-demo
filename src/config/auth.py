@@ -169,7 +169,7 @@ class OAuth2Config(pydantic.BaseModel, frozen=True):
         logging.getLogger().info(f"enabled: {[p.value for p in self.ENABLED_PROVIDERS]}")
         self.model_config["frozen"] = True  # runtime error, no static-type-check error
 
-    def config_for(self, provider: OAuth2Provider) -> _OAuth2ProviderConfig:
+    def config_for(self, provider: str | OAuth2Provider) -> _OAuth2ProviderConfig:
         """Get the supplied configs for the OAuth2 `provider`.
 
         :raise ValueError:
@@ -177,8 +177,10 @@ class OAuth2Config(pydantic.BaseModel, frozen=True):
         :raise TypeError:
             If `provider` is not an `OAuth2Provider`.
         """
+        if isinstance(provider, str):
+            provider = OAuth2Provider._value2member_map_.get(provider, provider)  # type: ignore
         if not isinstance(provider, OAuth2Provider):
-            raise TypeError(f"'{provider}' is not an instance of <OAuth2Provider>")
+            raise TypeError(f"'{provider}' is not an <OAuth2Provider>")
         try:
             return self.__configs_for_enabled[provider]
         except KeyError:
