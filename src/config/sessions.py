@@ -32,7 +32,8 @@ class MemcachedProvider(SessionsProviderConfig):
     """Configs for storing the `Sessions` in `Memcached`."""
 
     MEMCACHED_SERVER: str
-    MEMCACHED_PORT: int
+    MEMCACHED_PORT: pydantic.PositiveInt
+    MEMCACHED_RETRIES_BEFORE_FAIL: pydantic.PositiveInt = 5
 
 
 class RDBMSProvider(SessionsProviderConfig):
