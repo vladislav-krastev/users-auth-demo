@@ -52,12 +52,6 @@ class SessionsProviderMemcached(BaseSessionsProvider):
     @typing.override
     async def create(self, s: Session) -> Session | None:
         new_session = SessionModel.from_internal(s)
-
-        if not self._client.add(
-            new_session.s_id, new_session.to_cache(), expire=new_session.expires_at - int(s.created_at.timestamp()) + 1
-        ):
-            return None
-
         new_user_session = UserSessionModel(s.id, str(new_session.expires_at))
         cache: set[UserSessionModel] | None = self._client.get(new_session.u_id)
         if cache is None:
@@ -73,10 +67,12 @@ class SessionsProviderMemcached(BaseSessionsProvider):
             # The current .add() will fail, so try "updating" the cache with the currently processed new `Session`:
             update_method == self._client.add and self._client.replace(new_session.u_id, cache)
         ):
-            return s
-        else:
-            # the "relation" between the `User` and the new `Session` couldn't be created so don't save the `Session`:
-            self._client.delete(new_session.s_id)
+            if self._client.add(
+                new_session.s_id,
+                new_session.to_cache(),
+                expire=new_session.expires_at - int(s.created_at.timestamp()) + 1,
+            ):
+                return s
 
     @typing.override
     async def get(self, u_id: str, s_id: str) -> Session | None:
