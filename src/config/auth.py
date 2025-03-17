@@ -53,8 +53,8 @@ class _LocalPasswordConfig(_utils.BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="PASSWORD_")
     SUPER_ADMIN_INITIAL: typing.Literal["admin"] = "admin"
-    LENGTH_MIN: pydantic.PositiveInt = pydantic.Field(1, ge=1)
-    LENGTH_MAX: pydantic.PositiveInt = pydantic.Field(1, ge=1)
+    LENGTH_MIN: pydantic.PositiveInt = pydantic.Field(ge=1)
+    LENGTH_MAX: pydantic.PositiveInt = pydantic.Field(ge=1)
     RESET_TOKEN_EXPIRE_MINUTES: pydantic.PositiveInt = pydantic.Field(None)  # type: ignore
 
     @pydantic.model_validator(mode="after")
