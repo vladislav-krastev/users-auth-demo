@@ -52,9 +52,9 @@ class SessionModel(typing.NamedTuple):
         expires_at = datetime.fromtimestamp(self.expires_at, UTC).replace(microsecond=0)
         if self.provider == "local":
             expires_delta = (
-                AppConfig.LOCAL_AUTH.COOKIE_EXPIRE_MINUTES
+                AppConfig.LOCAL_AUTH.COOKIE.EXPIRE_MINUTES
                 if self.type == "cookie"
-                else AppConfig.LOCAL_AUTH.ACCESS_TOKEN_EXPIRE_MINUTES
+                else AppConfig.LOCAL_AUTH.ACCESS_TOKEN.EXPIRE_MINUTES
             )
         else:
             expires_delta = AppConfig.OAUTH2.config_for(self.provider).ACCESS_TOKEN_EXPIRE_MINUTES

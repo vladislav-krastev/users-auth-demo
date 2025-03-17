@@ -9,30 +9,69 @@ from utils import logging, singleton
 from . import _utils
 
 
+log = logging.getLogger()
+
+
+_LOCAL_AUTH_ENV_PREFIX: typing.Final[str] = "AUTH_LOCAL"
+
+
+class _LocalAuthCookieConfig(_utils.BaseSettings):
+    """Configs for a local authentication with a Cookie."""
+
+    _prefix: typing.ClassVar[str] = f"{_LOCAL_AUTH_ENV_PREFIX}_COOKIE"
+    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix, serialization_alias="IS_ENABLED")
+    NAME: str = None  # type: ignore
+    EXPIRE_MINUTES: pydantic.PositiveInt = None  # type: ignore
+
+    def _validate_when_enabled(self) -> typing.Self:
+        if self.IS_ENABLED:
+            if self.NAME is None:
+                raise _utils.missing_required_field_error(self._prefix, "NAME")
+            if self.EXPIRE_MINUTES is None:
+                raise _utils.missing_required_field_error(self._prefix, "EXPIRE_MINUTES")
+        return self
+
+
+class _LocalAuthTokenConfig(_utils.BaseSettings):
+    """Configs for a local authentication with an Access Token."""
+
+    _prefix: typing.ClassVar[str] = f"{_LOCAL_AUTH_ENV_PREFIX}_ACCESS_TOKEN"
+    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix, serialization_alias="IS_ENABLED")
+    EXPIRE_MINUTES: pydantic.PositiveInt = None  # type: ignore
+
+    def _validate_when_enabled(self) -> typing.Self:
+        if self.IS_ENABLED and self.EXPIRE_MINUTES is None:
+            raise _utils.missing_required_field_error(self._prefix, "EXPIRE_MINUTES")
+        return self
+
+
 class LocalAuthConfig(_utils.BaseSettings):
     """Configs for a local authentication."""
 
-    _prefix: typing.ClassVar[str] = "AUTH_LOCAL"
+    _prefix: typing.ClassVar[str] = _LOCAL_AUTH_ENV_PREFIX
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix, serialization_alias="IS_ENABLED")
-    COOKIE_ENABLED: bool = False
-    COOKIE_NAME: str = None  # type: ignore
-    COOKIE_EXPIRE_MINUTES: pydantic.PositiveInt = None  # type: ignore
-    ACCESS_TOKEN_ENABLED: bool = False
-    ACCESS_TOKEN_EXPIRE_MINUTES: pydantic.PositiveInt = None  # type: ignore
-    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: pydantic.PositiveInt = pydantic.Field(default=None)  # type: ignore
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix, serialization_alias="IS_ENABLED")
+    COOKIE: _LocalAuthCookieConfig = pydantic.Field(None, alias="", serialization_alias="COOKIE")  # type: ignore
+    ACCESS_TOKEN: _LocalAuthTokenConfig = pydantic.Field(None, alias="", serialization_alias="ACCESS_TOKEN")  # type: ignore
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: pydantic.PositiveInt = pydantic.Field(None)  # type: ignore
 
-    @pydantic.model_validator(mode="after")
-    def _validate_required_when_enabled(self) -> typing.Self:
-        if self.IS_ENABLED and self.COOKIE_ENABLED:
-            if self.COOKIE_NAME is None:
-                raise _utils.missing_required_field_error(self._prefix, "COOKIE_NAME")
-            if self.COOKIE_EXPIRE_MINUTES is None:
-                raise _utils.missing_required_field_error(self._prefix, "COOKIE_EXPIRE_MINUTES")
-        if self.IS_ENABLED and self.ACCESS_TOKEN_ENABLED:
-            if self.ACCESS_TOKEN_EXPIRE_MINUTES is None:
-                raise _utils.missing_required_field_error(self._prefix, "ACCESS_TOKEN_EXPIRE_MINUTES")
-        return self
+    @typing.override
+    def model_post_init(self, _: typing.Any):
+        self.model_config["frozen"] = False
+        self.COOKIE = _utils.with_correct_env_prefix_on_error(_LocalAuthCookieConfig)
+        self.ACCESS_TOKEN = _utils.with_correct_env_prefix_on_error(_LocalAuthTokenConfig)
+        self.model_config["frozen"] = True
+        if self.IS_ENABLED:
+            self.COOKIE._validate_when_enabled()
+            self.ACCESS_TOKEN._validate_when_enabled()
+            msg = "'cookie'" if self.COOKIE.IS_ENABLED else ""
+            if self.ACCESS_TOKEN.IS_ENABLED:
+                msg = f"{msg}, 'token'" if msg else "'token'"
+            log.info(f"enabled: [{msg}]")
+        else:
+            log.info("disabled")
 
 
 class _OAuth2ProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
@@ -166,7 +205,7 @@ class OAuth2Config(pydantic.BaseModel, frozen=True):
             }
         )
         self.ENABLED_PROVIDERS.extend(p for p in self.__configs_for_enabled.keys())
-        logging.getLogger().info(f"enabled: {[p.value for p in self.ENABLED_PROVIDERS]}")
+        log.info(f"enabled: {[p.value for p in self.ENABLED_PROVIDERS]}")
         self.model_config["frozen"] = True  # runtime error, no static-type-check error
 
     def config_for(self, provider: str | OAuth2Provider) -> _OAuth2ProviderConfig:

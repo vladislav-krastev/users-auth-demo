@@ -43,9 +43,9 @@ class _AppConfig(_utils.BaseSettings, singleton.SingletonPydantic):
 
     @typing.override
     def model_post_init(self, _: typing.Any):
-        with log.with_prefix("[LOCAL_AUTH]"):
+        with log.with_prefix("[AUTH LOCAL]"):
             self.LOCAL_AUTH = _utils.with_correct_env_prefix_on_error(auth.LocalAuthConfig)
-        with log.with_prefix("[OAUTH2]"):
+        with log.with_prefix("[AUTH EXTERNAL]"):
             self.OAUTH2 = auth.OAuth2Config()
         with log.with_prefix("[SESSIONS]"):
             self.SESSIONS = _utils.with_correct_env_prefix_on_error(sessions.SessionsConfig)

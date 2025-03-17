@@ -89,13 +89,13 @@ async def get_cookie(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Cookie"},
         )
-    jwt = JWT.create_for_user(user, AppConfig.LOCAL_AUTH.COOKIE_EXPIRE_MINUTES, "local")
+    jwt = JWT.create_for_user(user, AppConfig.LOCAL_AUTH.COOKIE.EXPIRE_MINUTES, "local")
     if not await SessionsService.create(Session.from_jwt(jwt, type="cookie")):
         raise SERVICE_UNAVAILABLE_EXCEPTION
     response.set_cookie(
-        key=AppConfig.LOCAL_AUTH.COOKIE_NAME,
+        key=AppConfig.LOCAL_AUTH.COOKIE.NAME,
         value=jwt.encode(),
-        max_age=AppConfig.LOCAL_AUTH.COOKIE_EXPIRE_MINUTES * 60,
+        max_age=AppConfig.LOCAL_AUTH.COOKIE.EXPIRE_MINUTES * 60,
         secure=True,
         httponly=True,
         samesite="lax",
@@ -131,7 +131,7 @@ async def get_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    jwt = JWT.create_for_user(user, AppConfig.LOCAL_AUTH.ACCESS_TOKEN_EXPIRE_MINUTES, "local")
+    jwt = JWT.create_for_user(user, AppConfig.LOCAL_AUTH.ACCESS_TOKEN.EXPIRE_MINUTES, "local")
     if not await SessionsService.create(Session.from_jwt(jwt, type="token")):
         raise SERVICE_UNAVAILABLE_EXCEPTION
     response.headers["Cache-Control"] = "no-store"

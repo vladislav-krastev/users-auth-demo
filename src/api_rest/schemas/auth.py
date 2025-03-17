@@ -38,7 +38,7 @@ local_cookie_scheme_basic_creds = HTTPBasic(
 )
 
 local_cookie_scheme = APIKeyCookie(
-    name=AppConfig.LOCAL_AUTH.COOKIE_NAME,
+    name=AppConfig.LOCAL_AUTH.COOKIE.NAME,
     scheme_name="Cookie",
     description="Obtained from hitting the 'auth/login' URL",
     auto_error=False,

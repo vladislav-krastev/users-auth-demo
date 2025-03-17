@@ -51,9 +51,9 @@ def raise_if_local_auth_disabled(for_cookie: bool = False, for_token: bool = Fal
         "Local authentication with an AccessToken",
     ]
     extended_check = (
-        AppConfig.LOCAL_AUTH.COOKIE_ENABLED is True
+        AppConfig.LOCAL_AUTH.COOKIE.IS_ENABLED is True
         if for_cookie
-        else AppConfig.LOCAL_AUTH.ACCESS_TOKEN_ENABLED is True
+        else AppConfig.LOCAL_AUTH.ACCESS_TOKEN.IS_ENABLED is True
         if for_token
         else True
     )
