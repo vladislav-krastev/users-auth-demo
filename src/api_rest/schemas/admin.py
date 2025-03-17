@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pydantic
 
+from config import AppConfig
 from services.sessions import Session
 from services.users import NormalUser
 from utils import validators
@@ -17,8 +18,8 @@ class AdminCreateRequest(pydantic.BaseModel):
         max_length=20,
     )
     password: str = pydantic.Field(
-        min_length=3,
-        max_length=20,
+        min_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MIN,
+        max_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MAX,
     )
 
     @pydantic.field_validator("username")
