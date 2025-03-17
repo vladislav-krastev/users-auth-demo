@@ -74,11 +74,12 @@ class LocalAuthConfig(_utils.BaseSettings):
             log.info("disabled")
 
 
+_EXTERNAL_AUTH_ENV_PREFIX: typing.Final[str] = "AUTH"
+
+
 class _OAuth2ProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
     """Common configs for authentication with an external OAuth2 provider."""
 
-    _prefix: typing.ClassVar[str] = "AUTH"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
     IS_ENABLED: bool
     CLIENT_ID: str = None  # type: ignore
     CLIENT_SECRET: str = None  # type: ignore
@@ -87,12 +88,13 @@ class _OAuth2ProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
     @pydantic.model_validator(mode="after")
     def _ensure_required(self) -> typing.Self:
         if self.IS_ENABLED:
+            prefix = self.model_config.get("env_prefix", "")
             if self.CLIENT_ID is None:
-                raise _utils.missing_required_field_error(self._prefix, "CLIENT_ID")
+                raise _utils.missing_required_field_error(prefix, "CLIENT_ID")
             if self.CLIENT_SECRET is None:
-                raise _utils.missing_required_field_error(self._prefix, "CLIENT_SECRET")
+                raise _utils.missing_required_field_error(prefix, "CLIENT_SECRET")
             if self.ACCESS_TOKEN_EXPIRE_MINUTES is None:
-                raise _utils.missing_required_field_error(self._prefix, "ACCESS_TOKEN_EXPIRE_MINUTES")
+                raise _utils.missing_required_field_error(prefix, "ACCESS_TOKEN_EXPIRE_MINUTES")
         return self
 
     @pydantic.field_serializer("CLIENT_SECRET")
@@ -103,57 +105,57 @@ class _OAuth2ProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
 class _DiscordOAuth2(_OAuth2ProviderConfig):
     """Configs for authentication with Discord."""
 
-    _prefix: typing.ClassVar[str] = f"{_OAuth2ProviderConfig.model_config.get('env_prefix', '')}DISCORD"
+    _prefix: typing.ClassVar[str] = f"{_EXTERNAL_AUTH_ENV_PREFIX}_DISCORD"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix)
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix)
 
 
 class _FacebookOAuth2(_OAuth2ProviderConfig):
     """Configs for authentication with Facebook."""
 
-    _prefix: typing.ClassVar[str] = f"{_OAuth2ProviderConfig.model_config.get('env_prefix', '')}FACEBOOK"
+    _prefix: typing.ClassVar[str] = f"{_EXTERNAL_AUTH_ENV_PREFIX}_FACEBOOK"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix)
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix)
 
 
 class _GitHubOAuth2(_OAuth2ProviderConfig):
     """Configs for authentication with GitHub."""
 
-    _prefix: typing.ClassVar[str] = f"{_OAuth2ProviderConfig.model_config.get('env_prefix', '')}GITHUB"
+    _prefix: typing.ClassVar[str] = f"{_EXTERNAL_AUTH_ENV_PREFIX}_GITHUB"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix)
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix)
 
 
 class _GoogleOAuth2(_OAuth2ProviderConfig):
     """Configs for authentication with Google."""
 
-    _prefix: typing.ClassVar[str] = f"{_OAuth2ProviderConfig.model_config.get('env_prefix', '')}GOOGLE"
+    _prefix: typing.ClassVar[str] = f"{_EXTERNAL_AUTH_ENV_PREFIX}_GOOGLE"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix)
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix)
 
 
 class _LinkedInOAuth2(_OAuth2ProviderConfig):
     """Configs for authentication with LinkedIn."""
 
-    _prefix: typing.ClassVar[str] = f"{_OAuth2ProviderConfig.model_config.get('env_prefix', '')}LINKEDIN"
+    _prefix: typing.ClassVar[str] = f"{_EXTERNAL_AUTH_ENV_PREFIX}_LINKEDIN"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix)
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix)
 
 
 class _MicrosoftOAuth2(_OAuth2ProviderConfig):
     """Configs for authentication with Microsoft."""
 
-    _prefix: typing.ClassVar[str] = f"{_OAuth2ProviderConfig.model_config.get('env_prefix', '')}MICROSOFT"
+    _prefix: typing.ClassVar[str] = f"{_EXTERNAL_AUTH_ENV_PREFIX}_MICROSOFT"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix)
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix)
 
 
 class _RedditOAuth2(_OAuth2ProviderConfig):
     """Configs for authentication with Reddit."""
 
-    _prefix: typing.ClassVar[str] = f"{_OAuth2ProviderConfig.model_config.get('env_prefix', '')}REDDIT"
+    _prefix: typing.ClassVar[str] = f"{_EXTERNAL_AUTH_ENV_PREFIX}_REDDIT"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
-    IS_ENABLED: bool = pydantic.Field(default=False, alias=_prefix)
+    IS_ENABLED: bool = pydantic.Field(False, alias=_prefix)
 
 
 @enum.unique

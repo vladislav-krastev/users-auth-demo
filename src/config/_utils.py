@@ -49,4 +49,6 @@ def with_correct_env_prefix_on_error[T: BaseSettings | PydanticBaseSettings](mod
 def missing_required_field_error(prefix: str, name: str) -> PydanticCustomError:
     """An error for required but missing configuration field."""
 
-    return PydanticCustomError("missing", "{p}_{n}: Field required", {"p": prefix, "n": name})
+    return PydanticCustomError(
+        "missing", "{p}_{n}: Field required", {"p": prefix[:-1] if prefix.endswith("_") else prefix, "n": name}
+    )
