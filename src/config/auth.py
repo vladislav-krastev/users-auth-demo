@@ -47,6 +47,13 @@ class _LocalAuthTokenConfig(_utils.BaseSettings):
         return self
 
 
+class _LocalPasswordConfig(_utils.BaseSettings):
+    """Configs for the password for local authentication."""
+
+    model_config = SettingsConfigDict(env_prefix=f"{_LOCAL_AUTH_ENV_PREFIX}_PASSWORD_")
+    RESET_TOKEN_EXPIRE_MINUTES: pydantic.PositiveInt = pydantic.Field(None)  # type: ignore
+
+
 class LocalAuthConfig(_utils.BaseSettings):
     """Configs for a local authentication."""
 
@@ -55,13 +62,14 @@ class LocalAuthConfig(_utils.BaseSettings):
     IS_ENABLED: bool = pydantic.Field(False, alias=_prefix, serialization_alias="IS_ENABLED")
     COOKIE: _LocalAuthCookieConfig = pydantic.Field(None, alias="", serialization_alias="COOKIE")  # type: ignore
     ACCESS_TOKEN: _LocalAuthTokenConfig = pydantic.Field(None, alias="", serialization_alias="ACCESS_TOKEN")  # type: ignore
-    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: pydantic.PositiveInt = pydantic.Field(None)  # type: ignore
+    PASSWORD: _LocalPasswordConfig = pydantic.Field(None, alias="", serialization_alias="PASSWORD")  # type: ignore
 
     @typing.override
     def model_post_init(self, _: typing.Any):
         self.model_config["frozen"] = False
         self.COOKIE = _utils.with_correct_env_prefix_on_error(_LocalAuthCookieConfig)
         self.ACCESS_TOKEN = _utils.with_correct_env_prefix_on_error(_LocalAuthTokenConfig)
+        self.PASSWORD = _utils.with_correct_env_prefix_on_error(_LocalPasswordConfig)
         self.model_config["frozen"] = True
         if self.IS_ENABLED:
             self.COOKIE._validate_when_enabled()
