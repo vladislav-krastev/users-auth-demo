@@ -17,7 +17,7 @@ class _UsersProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
 
 
-class DynamoDBProvider(_UsersProviderConfig):
+class DynamoDBProviderConfig(_UsersProviderConfig):
     """Configs for storing the `Users` in `DynamoDB`."""
 
     AWS_ACCESS_KEY: str
@@ -30,24 +30,26 @@ class DynamoDBProvider(_UsersProviderConfig):
         return "*****"
 
 
-class RDBMSProvider(_UsersProviderConfig):
+class RDBMSProviderConfig(_UsersProviderConfig):
     """Configs for storing the `Users` in an `RDBMS` (currently only PostgreSQL)."""
 
+    _prefix: typing.ClassVar[str] = f"{_UsersProviderConfig.model_config.get('env_prefix', '')}RDBMS"
+    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
     ECHO_SQL: bool = False  # TODO: dynamic/configurable
-    DB_CONNECTION_SCHEME: typing.Literal["postgresql+asyncpg"] = "postgresql+asyncpg"
-    DB_SERVER: str
-    DB_PORT: int
+    CONNECTION_SCHEME: typing.Literal["postgresql+asyncpg"] = "postgresql+asyncpg"
+    SERVER: str
+    PORT: int
     DB_NAME: str
     DB_USER: str
     DB_PASSWORD: str
 
     @pydantic.computed_field  # type: ignore[prop-decorator]
     @property
-    def DB_CONNECT_URL(self) -> MultiHostUrl:
+    def CONNECTION_URL(self) -> MultiHostUrl:
         return MultiHostUrl.build(
-            scheme=self.DB_CONNECTION_SCHEME,
-            host=self.DB_SERVER,
-            port=self.DB_PORT,
+            scheme=self.CONNECTION_SCHEME,
+            host=self.SERVER,
+            port=self.PORT,
             path=self.DB_NAME,
             username=self.DB_USER,
             password=self.DB_PASSWORD,
@@ -57,7 +59,7 @@ class RDBMSProvider(_UsersProviderConfig):
     def _serialize_password(self, _: str) -> str:
         return "*****"
 
-    @pydantic.field_serializer("DB_CONNECT_URL")
+    @pydantic.field_serializer("CONNECTION_URL")
     def _serialize_url(self, url: MultiHostUrl) -> str:
         return password.get_obscured_password_db_url(url).unicode_string()
 
@@ -65,8 +67,8 @@ class RDBMSProvider(_UsersProviderConfig):
 class UsersProvider(enum.StrEnum):
     """A `Users` storage provder."""
 
-    DYNAMODB = ("dynamodb", DynamoDBProvider)
-    RDBMS = ("rdbms", RDBMSProvider)
+    DYNAMODB = ("dynamodb", DynamoDBProviderConfig)
+    RDBMS = ("rdbms", RDBMSProviderConfig)
 
     def __new__(cls, name: str, config_class: type[_UsersProviderConfig]):
         member = str.__new__(cls, name)

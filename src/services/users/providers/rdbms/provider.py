@@ -5,7 +5,7 @@ import sqlalchemy as sa
 import sqlalchemy.ext.asyncio as sa_async
 import sqlalchemy.orm as sa_orm
 
-from config.users import RDBMSProvider
+from config.users import RDBMSProviderConfig
 from utils import exceptions, logging
 
 from ...types import USER_LOGIN_PROVIDER
@@ -39,9 +39,9 @@ class UsersProviderRDBMS(BaseUsersProvider):
 
     has_support_for_get_all = True
 
-    def __init__(self, config: RDBMSProvider) -> None:
+    def __init__(self, config: RDBMSProviderConfig) -> None:
         engine = sa_async.create_async_engine(
-            config.DB_CONNECT_URL.unicode_string(),
+            config.CONNECTION_URL.unicode_string(),
             echo=config.ECHO_SQL,
             pool_pre_ping=True,
         )

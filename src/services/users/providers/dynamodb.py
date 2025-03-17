@@ -1,11 +1,9 @@
 from datetime import datetime
 from logging import getLogger
 from typing import Any, cast, override
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
 
 from pydantic import ValidationError as pydantic_ValidationError
-from starlette.concurrency import run_in_threadpool
-
 from pynamodb.attributes import (
     Attribute,
     BooleanAttribute,
@@ -14,18 +12,23 @@ from pynamodb.attributes import (
 from pynamodb.exceptions import PutError
 from pynamodb.models import (
     MetaProtocol as DynamoDBMetaProtocol,
+)
+from pynamodb.models import (
     Model as DynamoDBModel,
 )
+from starlette.concurrency import run_in_threadpool
 
-from config.users import DynamoDBProvider
-from .abstract import BaseUsersProvider, BaseUser
+from config.users import DynamoDBProviderConfig
+
+from .abstract import BaseUser, BaseUsersProvider
 
 
-_logger = getLogger('uvicorn.error')
+_logger = getLogger("uvicorn.error")
 
 
 class _InnerModel(DynamoDBModel):
     """ """
+
     # so pynamodb.models.MetaModel can init it with default values:
     class Meta(DynamoDBMetaProtocol): ...
 
@@ -38,7 +41,7 @@ class _InnerModel(DynamoDBModel):
 
 
 class UsersProviderDynamoDB(BaseUsersProvider):
-    def __init__(self, config: DynamoDBProvider) -> None:
+    def __init__(self, config: DynamoDBProviderConfig) -> None:
         #####
         host = None
         region = "us-east-1"
@@ -109,10 +112,7 @@ class UsersProviderDynamoDB(BaseUsersProvider):
             res = await run_in_threadpool(
                 self._conn.update_item,
                 u_id,
-                actions=[
-                    cast(Attribute[Any], getattr(_InnerModel, f)).set(v)
-                    for f, v in kwargs.items()
-                ],
+                actions=[cast(Attribute[Any], getattr(_InnerModel, f)).set(v) for f, v in kwargs.items()],
                 return_values="ALL_NEW",
             )
             if res["ResponseMetadata"]["HTTPStatusCode"] == 200:

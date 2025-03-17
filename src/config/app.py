@@ -36,8 +36,8 @@ class _AppConfig(_utils.BaseSettings, singleton.SingletonPydantic):
         ):
             return False
         AppConfig.SESSIONS.PROVIDER_CONFIG = typing.cast(sessions.RDBMSProvider, AppConfig.SESSIONS.PROVIDER_CONFIG)
-        AppConfig.USERS.PROVIDER_CONFIG = typing.cast(users.RDBMSProvider, AppConfig.USERS.PROVIDER_CONFIG)
-        return AppConfig.SESSIONS.PROVIDER_CONFIG.DB_CONNECT_URL == AppConfig.USERS.PROVIDER_CONFIG.DB_CONNECT_URL
+        AppConfig.USERS.PROVIDER_CONFIG = typing.cast(users.RDBMSProviderConfig, AppConfig.USERS.PROVIDER_CONFIG)
+        return AppConfig.SESSIONS.PROVIDER_CONFIG.DB_CONNECT_URL == AppConfig.USERS.PROVIDER_CONFIG.CONNECTION_URL
 
     @typing.override
     def model_post_init(self, _: typing.Any):
