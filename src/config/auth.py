@@ -2,6 +2,7 @@ import enum
 import typing
 
 import pydantic
+from pydantic_core import PydanticCustomError
 from pydantic_settings import SettingsConfigDict
 
 from utils import logging, singleton
@@ -50,8 +51,25 @@ class _LocalAuthTokenConfig(_utils.BaseSettings):
 class _LocalPasswordConfig(_utils.BaseSettings):
     """Configs for the password for local authentication."""
 
-    model_config = SettingsConfigDict(env_prefix=f"{_LOCAL_AUTH_ENV_PREFIX}_PASSWORD_")
+    model_config = SettingsConfigDict(env_prefix="PASSWORD_")
+    SUPER_ADMIN_INITIAL: typing.Literal["admin"] = "admin"
+    LENGTH_MIN: pydantic.PositiveInt = pydantic.Field(1, ge=1)
+    LENGTH_MAX: pydantic.PositiveInt = pydantic.Field(1, ge=1)
     RESET_TOKEN_EXPIRE_MINUTES: pydantic.PositiveInt = pydantic.Field(None)  # type: ignore
+
+    @pydantic.model_validator(mode="after")
+    def _validate_lengths(self) -> typing.Self:
+        if self.LENGTH_MIN > self.LENGTH_MAX:
+            raise PydanticCustomError(
+                "less_than_equal",
+                "{p}LENGTH_MIN: Input should be less than or equal to {p}LENGTH_MAX, received {len_min} <= {len_max}",
+                {"p": self.model_config.get("env_prefix", ""), "len_min": self.LENGTH_MIN, "len_max": self.LENGTH_MAX},
+            )
+        return self
+
+    @pydantic.field_serializer("SUPER_ADMIN_INITIAL")
+    def _serialize_initial_admin_password(self, _: str) -> str:
+        return "*****"
 
 
 class LocalAuthConfig(_utils.BaseSettings):
@@ -60,17 +78,22 @@ class LocalAuthConfig(_utils.BaseSettings):
     _prefix: typing.ClassVar[str] = _LOCAL_AUTH_ENV_PREFIX
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
     IS_ENABLED: bool = pydantic.Field(False, alias=_prefix, serialization_alias="IS_ENABLED")
-    COOKIE: _LocalAuthCookieConfig = pydantic.Field(None, alias="", serialization_alias="COOKIE")  # type: ignore
-    ACCESS_TOKEN: _LocalAuthTokenConfig = pydantic.Field(None, alias="", serialization_alias="ACCESS_TOKEN")  # type: ignore
-    PASSWORD: _LocalPasswordConfig = pydantic.Field(None, alias="", serialization_alias="PASSWORD")  # type: ignore
+    COOKIE: _LocalAuthCookieConfig = pydantic.Field(
+        alias="",
+        serialization_alias="COOKIE",
+        default_factory=lambda: _utils.with_correct_env_prefix_on_error(_LocalAuthCookieConfig),
+    )
+    ACCESS_TOKEN: _LocalAuthTokenConfig = pydantic.Field(
+        alias="",
+        serialization_alias="ACCESS_TOKEN",
+        default_factory=lambda: _utils.with_correct_env_prefix_on_error(_LocalAuthTokenConfig),
+    )
+    PASSWORD: _LocalPasswordConfig = pydantic.Field(
+        default_factory=lambda: _utils.with_correct_env_prefix_on_error(_LocalPasswordConfig)
+    )
 
     @typing.override
     def model_post_init(self, _: typing.Any):
-        self.model_config["frozen"] = False
-        self.COOKIE = _utils.with_correct_env_prefix_on_error(_LocalAuthCookieConfig)
-        self.ACCESS_TOKEN = _utils.with_correct_env_prefix_on_error(_LocalAuthTokenConfig)
-        self.PASSWORD = _utils.with_correct_env_prefix_on_error(_LocalPasswordConfig)
-        self.model_config["frozen"] = True
         if self.IS_ENABLED:
             self.COOKIE._validate_when_enabled()
             self.ACCESS_TOKEN._validate_when_enabled()

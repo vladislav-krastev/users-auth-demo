@@ -19,7 +19,7 @@ super_admin_log = logging.getLogger("super-admin")
 
 async def ensure_super_admin() -> bool:
     """Ensure the super ADMIN `User` exists in the UsersProvider storage."""
-    n, p = AppConfig.USERS.SUPER_ADMIN_USERNAME, AppConfig.USERS.SUPER_ADMIN_INITIAL_PASSWORD
+    n, p = AppConfig.USERS.SUPER_ADMIN_USERNAME, AppConfig.LOCAL_AUTH.PASSWORD.SUPER_ADMIN_INITIAL
     existing = await UsersService.get_many(AdminUser, limit=2, is_admin_super=True)
     if existing is None:
         super_admin_log.error("failed: internal error. Is there an active connection to the USERS storage provider?")

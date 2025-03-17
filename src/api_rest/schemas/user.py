@@ -26,8 +26,8 @@ class UserRegisterRequest(pydantic.BaseModel):
         max_length=255,
     )
     password: str = pydantic.Field(
-        min_length=AppConfig.USERS.PASSWORD_LENGTH_MIN,
-        max_length=AppConfig.USERS.PASSWORD_LENGTH_MAX,
+        min_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MIN,
+        max_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MAX,
     )
 
 
@@ -60,6 +60,6 @@ class UserUpdatePasswordRequest(pydantic.BaseModel):
 
     current_password: str | None = None
     new_password: str = pydantic.Field(
-        min_length=AppConfig.USERS.PASSWORD_LENGTH_MIN,
-        max_length=AppConfig.USERS.PASSWORD_LENGTH_MAX,
+        min_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MIN,
+        max_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MAX,
     )

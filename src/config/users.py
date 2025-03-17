@@ -89,7 +89,6 @@ class UsersConfig(_utils.BaseSettings):
     PROVIDER_CONFIG: _UsersProviderConfig = pydantic.Field(default=None)  # type: ignore
 
     SUPER_ADMIN_USERNAME: typing.Literal["admin"] = "admin"
-    SUPER_ADMIN_INITIAL_PASSWORD: typing.Literal["admin"] = "admin"
 
     USERNAME_FORBIDDEN: set[str] = set()
     USERNAME_LENGTH_INITIAL_SUFFIX: pydantic.PositiveInt = pydantic.Field(ge=5)  # TODO
@@ -106,19 +105,6 @@ class UsersConfig(_utils.BaseSettings):
             )
         return self
 
-    PASSWORD_LENGTH_MIN: pydantic.PositiveInt = pydantic.Field(ge=1)
-    PASSWORD_LENGTH_MAX: pydantic.PositiveInt = pydantic.Field(ge=1)
-
-    @pydantic.model_validator(mode="after")
-    def _validate_password_lengths(self) -> typing.Self:
-        if self.PASSWORD_LENGTH_MIN > self.PASSWORD_LENGTH_MAX:
-            raise PydanticCustomError(
-                "less_than_equal",
-                "USERS_PASSWORD_LENGTH_MIN must be <= USERS_PASSWORD_LENGTH_MAX, received {len_min} <= {len_max}",
-                {"len_min": self.PASSWORD_LENGTH_MIN, "len_max": self.PASSWORD_LENGTH_MAX},
-            )
-        return self
-
     @typing.override
     def model_post_init(self, _: typing.Any):
         self.USERNAME_FORBIDDEN.add(self.SUPER_ADMIN_USERNAME)
@@ -132,7 +118,3 @@ class UsersConfig(_utils.BaseSettings):
     @pydantic.field_serializer("PROVIDER_CONFIG")
     def _serialize_config(self, provider_config: _UsersProviderConfig) -> dict[str, typing.Any]:
         return provider_config.model_dump()
-
-    @pydantic.field_serializer("SUPER_ADMIN_INITIAL_PASSWORD")
-    def _serialize_initial_admin_password(self, _: str) -> str:
-        return "*****"
