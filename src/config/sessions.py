@@ -10,11 +10,11 @@ from utils import logging, password, singleton
 from . import _utils
 
 
+_PROVIDER_ENV_PREFIX: typing.Final[str] = "SESSIONS_PROVIDER"
+
+
 class _SessionsProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
     """Configs for a `Sessions` storage provider."""
-
-    _prefix: typing.ClassVar[str] = "SESSIONS_PROVIDER"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
 
 
 class DynamoDBProviderConfig(_SessionsProviderConfig):
@@ -31,8 +31,7 @@ class DynamoDBProviderConfig(_SessionsProviderConfig):
 class MemcachedProviderConfig(_SessionsProviderConfig):
     """Configs for storing the `Sessions` in `Memcached`."""
 
-    _prefix: typing.ClassVar[str] = f"{_SessionsProviderConfig.model_config.get('env_prefix', '')}MEMCACHED"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
+    model_config = SettingsConfigDict(env_prefix=f"{_PROVIDER_ENV_PREFIX}_MEMCACHED_")
     SERVER: str
     PORT: pydantic.PositiveInt
     RETRIES_BEFORE_FAIL: pydantic.PositiveInt = 5
@@ -41,8 +40,7 @@ class MemcachedProviderConfig(_SessionsProviderConfig):
 class RDBMSProviderConfig(_SessionsProviderConfig):
     """Configs for storing the `Sessions` in an `RDBMS` (currently only PostgreSQL)."""
 
-    _prefix: typing.ClassVar[str] = f"{_SessionsProviderConfig.model_config.get('env_prefix', '')}RDBMS"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
+    model_config = SettingsConfigDict(env_prefix=f"{_PROVIDER_ENV_PREFIX}_RDBMS_")
     ECHO_SQL: bool = False  # TODO: dynamic/configurable
     CONNECTION_SCHEME: typing.Literal["postgresql+asyncpg"] = "postgresql+asyncpg"
     SERVER: str
@@ -75,6 +73,8 @@ class RDBMSProviderConfig(_SessionsProviderConfig):
 class RedisProviderConfig(_SessionsProviderConfig):
     """Configs for storing the `Sessions` in `Redis`."""
 
+    model_config = SettingsConfigDict(env_prefix=f"{_PROVIDER_ENV_PREFIX}_REDIS_")
+
 
 class SessionsProvider(enum.StrEnum):
     """A `Sessions` storage provder."""
@@ -96,26 +96,25 @@ class SessionsProvider(enum.StrEnum):
 class SessionsConfig(_utils.BaseSettings):
     """ """
 
-    _prefix: typing.ClassVar[str] = "SESSIONS"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_", frozen=False)
+    model_config = SettingsConfigDict(env_prefix="SESSIONS_", frozen=False)
 
     PROVIDER: SessionsProvider
-    PROVIDER_CONFIG: _SessionsProviderConfig = pydantic.Field(default=None)  # type: ignore
+    PROVIDER_CONFIG: _SessionsProviderConfig = pydantic.Field(None)  # type: ignore
 
     EXPIRED_DELETE: bool = False
-    EXPIRED_DELETE_AFTER_MINS: pydantic.PositiveInt = pydantic.Field(default=None)  # type: ignore
+    EXPIRED_DELETE_AFTER_MINS: pydantic.PositiveInt = pydantic.Field(None)  # type: ignore
 
     @pydantic.model_validator(mode="after")
     def _validate_expired_delete(self) -> typing.Self:
         if self.EXPIRED_DELETE and (self.EXPIRED_DELETE_AFTER_MINS is None):
-            raise _utils.missing_required_field_error(self._prefix, "EXPIRED_DELETE_AFTER_MINS")
+            raise _utils.missing_required_field_error(
+                self.model_config.get("env_prefix", ""), "EXPIRED_DELETE_AFTER_MINS"
+            )
         return self
 
     @typing.override
     def model_post_init(self, _: typing.Any):
-        self.PROVIDER_CONFIG = _utils.with_correct_env_prefix_on_error(
-            SessionsProvider(self.PROVIDER).config_class,
-        )
+        self.PROVIDER_CONFIG = _utils.init_config(SessionsProvider(self.PROVIDER).config_class)
         logging.getLogger().info(f"[PROVIDER] {self.PROVIDER}")
         self.model_config["frozen"] = True  # runtime error, no static-type-check error
 

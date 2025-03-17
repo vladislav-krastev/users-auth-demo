@@ -7,6 +7,11 @@ from pydantic_core import PydanticCustomError
 from pydantic_settings import BaseSettings as PydanticBaseSettings
 from pydantic_settings import SettingsConfigDict
 
+from utils import logging
+
+
+log = logging.getLogger()
+
 
 class BaseSettings(PydanticBaseSettings):
     """Provides a common base `model_config` attribute for the config classes."""
@@ -23,18 +28,26 @@ class BaseSettings(PydanticBaseSettings):
     )
 
 
-def with_correct_env_prefix_on_error[T: BaseSettings | PydanticBaseSettings](model: type[T]) -> T:
-    """Instantiate an instance of `model`.
+def init_config[T: BaseSettings | PydanticBaseSettings | pydantic.BaseModel](
+    model: type[T], log_prefix: str | None = None
+) -> T:
+    """Initialise a configuration namespace.
 
     If a `pydantic.ValidationError` is thrown during the instance creation,
-    re-raise it with included the 'correct' (from the user's perspective)
-    name of the errored field, prefixed with the spepcific `model.model_config["env_prefix"]`.
+    its reraised with included the 'correct' (from the user's perspective)
+    name of the errored field, prefixed with the specific `model.model_config["env_prefix"]`.
+
+    :param type[T] model:
+        The class to be initialised.
+    :param str log_prefix:
+        Optional text to prefix any logs emitted during initialisation.
 
     :return T:
         An instance of the `model`.
     """
     try:
-        return model()
+        with log.with_prefix(log_prefix):
+            return model()
     except pydantic.ValidationError as err:
         e = err.errors()[0]
         if e["loc"]:  # info for an errored field is present

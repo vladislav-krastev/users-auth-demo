@@ -10,16 +10,17 @@ from utils import logging, password, singleton
 from . import _utils
 
 
+_PROVIDER_ENV_PREFIX: typing.Final[str] = "USERS_PROVIDER"
+
+
 class _UsersProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
     """Configs for a `Users` storage provider."""
-
-    _prefix: typing.ClassVar[str] = "USERS_PROVIDER"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
 
 
 class DynamoDBProviderConfig(_UsersProviderConfig):
     """Configs for storing the `Users` in `DynamoDB`."""
 
+    model_config = SettingsConfigDict(env_prefix=f"{_PROVIDER_ENV_PREFIX}_DYNAMO_")
     AWS_ACCESS_KEY: str
     AWS_SECRET_KEY: str
     # AWS_REGION: str
@@ -33,8 +34,7 @@ class DynamoDBProviderConfig(_UsersProviderConfig):
 class RDBMSProviderConfig(_UsersProviderConfig):
     """Configs for storing the `Users` in an `RDBMS` (currently only PostgreSQL)."""
 
-    _prefix: typing.ClassVar[str] = f"{_UsersProviderConfig.model_config.get('env_prefix', '')}RDBMS"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
+    model_config = SettingsConfigDict(env_prefix=f"{_PROVIDER_ENV_PREFIX}_RDBMS_")
     ECHO_SQL: bool = False  # TODO: dynamic/configurable
     CONNECTION_SCHEME: typing.Literal["postgresql+asyncpg"] = "postgresql+asyncpg"
     SERVER: str
@@ -82,11 +82,10 @@ class UsersProvider(enum.StrEnum):
 class UsersConfig(_utils.BaseSettings):
     """All configs specific for the `Users`."""
 
-    _prefix: typing.ClassVar[str] = "USERS"
-    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_", frozen=False)
+    model_config = SettingsConfigDict(env_prefix="USERS_", frozen=False)
 
     PROVIDER: UsersProvider
-    PROVIDER_CONFIG: _UsersProviderConfig = pydantic.Field(default=None)  # type: ignore
+    PROVIDER_CONFIG: _UsersProviderConfig = pydantic.Field(None)  # type: ignore
 
     SUPER_ADMIN_USERNAME: typing.Literal["admin"] = "admin"
 
@@ -109,9 +108,7 @@ class UsersConfig(_utils.BaseSettings):
     def model_post_init(self, _: typing.Any):
         self.USERNAME_FORBIDDEN.add(self.SUPER_ADMIN_USERNAME)
         self.USERNAME_FORBIDDEN.add("me")
-        self.PROVIDER_CONFIG = _utils.with_correct_env_prefix_on_error(
-            UsersProvider(self.PROVIDER).config_class,
-        )
+        self.PROVIDER_CONFIG = _utils.init_config(UsersProvider(self.PROVIDER).config_class)
         logging.getLogger().info(f"[PROVIDER] {self.PROVIDER}")
         self.model_config["frozen"] = True  # runtime error, no static-type-check error
 

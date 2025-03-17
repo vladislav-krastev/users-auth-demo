@@ -81,16 +81,14 @@ class LocalAuthConfig(_utils.BaseSettings):
     COOKIE: _LocalAuthCookieConfig = pydantic.Field(
         alias="",
         serialization_alias="COOKIE",
-        default_factory=lambda: _utils.with_correct_env_prefix_on_error(_LocalAuthCookieConfig),
+        default_factory=lambda: _utils.init_config(_LocalAuthCookieConfig),
     )
     ACCESS_TOKEN: _LocalAuthTokenConfig = pydantic.Field(
         alias="",
         serialization_alias="ACCESS_TOKEN",
-        default_factory=lambda: _utils.with_correct_env_prefix_on_error(_LocalAuthTokenConfig),
+        default_factory=lambda: _utils.init_config(_LocalAuthTokenConfig),
     )
-    PASSWORD: _LocalPasswordConfig = pydantic.Field(
-        default_factory=lambda: _utils.with_correct_env_prefix_on_error(_LocalPasswordConfig)
-    )
+    PASSWORD: _LocalPasswordConfig = pydantic.Field(default_factory=lambda: _utils.init_config(_LocalPasswordConfig))
 
     @typing.override
     def model_post_init(self, _: typing.Any):
