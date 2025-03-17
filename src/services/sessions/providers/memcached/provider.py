@@ -52,31 +52,26 @@ class SessionsProviderMemcached(BaseSessionsProvider):
     @typing.override
     async def create(self, s: Session) -> Session | None:
         new_session = SessionModel.from_internal(s)
-
-        if not self._client.add(
-            new_session.s_id, new_session.to_cache(), expire=new_session.expires_at - int(s.created_at.timestamp()) + 1
-        ):
-            return None
-
         new_user_session = UserSessionModel(s.id, str(new_session.expires_at))
-        cache: set[UserSessionModel] | None = self._client.get(new_session.u_id)
-        if cache is None:
-            update_method = self._client.add
-            cache = {new_user_session}
-        else:
-            update_method = self._client.replace
-            cache = UserSessionModel.remove_expired(cache)
-            cache.add(new_user_session)
-        if update_method(new_session.u_id, cache) or (
-            # TODO: EDGE_CASE: race-condition when user logs-in for the first time on multiple devices at once
-            # (almost simultaneously) and another replica of the service has already created the initial record.
-            # The current .add() will fail, so try "updating" the cache with the currently processed new `Session`:
-            update_method == self._client.add and self._client.replace(new_session.u_id, cache)
+        cache, cas = typing.cast(tuple[set[UserSessionModel] | None, typing.Any], self._client.gets(new_session.u_id))
+        is_user_session_created = True
+        if not (cache is None and self._client.add(new_session.u_id, {new_user_session})):
+            is_user_session_created = False
+            cache = set[UserSessionModel]() if cache is None else UserSessionModel.remove_expired(cache)
+            for _ in range(
+                typing.cast(MemcachedProvider, AppConfig.SESSIONS.PROVIDER_CONFIG).MEMCACHED_RETRIES_BEFORE_FAIL
+            ):
+                cache.add(new_user_session)
+                if self._client.cas(new_session.u_id, cache, cas):
+                    is_user_session_created = True
+                    break
+                cache, cas = typing.cast(tuple[set[UserSessionModel], typing.Any], self._client.gets(new_session.u_id))
+        if is_user_session_created and self._client.add(
+            new_session.s_id,
+            new_session.to_cache(),
+            expire=new_session.expires_at - int(s.created_at.timestamp()) + 1,
         ):
             return s
-        else:
-            # the "relation" between the `User` and the new `Session` couldn't be created so don't save the `Session`:
-            self._client.delete(new_session.s_id)
 
     @typing.override
     async def get(self, u_id: str, s_id: str) -> Session | None:
