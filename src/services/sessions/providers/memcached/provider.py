@@ -9,7 +9,7 @@ from pymemcache.serde import (
 )
 
 from config import AppConfig
-from config.sessions import MemcachedProvider
+from config.sessions import MemcachedProviderConfig
 from utils import logging
 
 from ..abstract import BaseSessionsProvider, Session
@@ -25,8 +25,8 @@ class SessionsProviderMemcached(BaseSessionsProvider):
 
     __slots__ = ("_connection_url", "_client")
 
-    def __init__(self, config: MemcachedProvider) -> None:
-        self._connection_url = f"{config.MEMCACHED_SERVER}:{config.MEMCACHED_PORT}"
+    def __init__(self, config: MemcachedProviderConfig) -> None:
+        self._connection_url = f"{config.SERVER}:{config.PORT}"
         self._client = _MemcacheClient(
             self._connection_url,
             connect_timeout=5,
@@ -134,9 +134,7 @@ class SessionsProviderMemcached(BaseSessionsProvider):
         if len(invalidated) > 1:
             # TODO: log error
             return False
-        for _ in range(
-            typing.cast(MemcachedProvider, AppConfig.SESSIONS.PROVIDER_CONFIG).MEMCACHED_RETRIES_BEFORE_FAIL
-        ):
+        for _ in range(typing.cast(MemcachedProviderConfig, AppConfig.SESSIONS.PROVIDER_CONFIG).RETRIES_BEFORE_FAIL):
             if self._client.cas(u_id, cache.difference(invalidated), cas):
                 self._client.delete(s_id)
                 return True
@@ -149,9 +147,7 @@ class SessionsProviderMemcached(BaseSessionsProvider):
         if not cache:
             return True
         invalidated = cache
-        for _ in range(
-            typing.cast(MemcachedProvider, AppConfig.SESSIONS.PROVIDER_CONFIG).MEMCACHED_RETRIES_BEFORE_FAIL
-        ):
+        for _ in range(typing.cast(MemcachedProviderConfig, AppConfig.SESSIONS.PROVIDER_CONFIG).RETRIES_BEFORE_FAIL):
             if self._client.cas(u_id, cache.difference(invalidated), cas):
                 self._client.delete_many([s.id for s in cache])
                 return True

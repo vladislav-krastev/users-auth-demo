@@ -30,7 +30,7 @@ from pynamodb.models import (
 )
 from starlette.concurrency import run_in_threadpool
 
-from config.sessions import DynamoDBProvider
+from config.sessions import DynamoDBProviderConfig
 from utils import logging
 
 from .abstract import BaseSessionsProvider, Session
@@ -52,7 +52,7 @@ class _InnerModel(DynamoDBModel):
 
 
 class SessionsProviderDynamoDB(BaseSessionsProvider):
-    def __init__(self, config: DynamoDBProvider):
+    def __init__(self, config: DynamoDBProviderConfig):
         #####
         host = None
         region = "us-east-1"

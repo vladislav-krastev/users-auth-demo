@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import sqlalchemy as sa
 import sqlalchemy.ext.asyncio as sa_async
 
-from config.sessions import RDBMSProvider
+from config.sessions import RDBMSProviderConfig
 from utils import logging
 
 from ..abstract import BaseSessionsProvider, Session
@@ -23,9 +23,9 @@ class SessionsProviderRDBMS(BaseSessionsProvider):
 
     __slots__ = ("_connection_url", "_db")
 
-    def __init__(self, config: RDBMSProvider) -> None:
+    def __init__(self, config: RDBMSProviderConfig) -> None:
         engine = sa_async.create_async_engine(
-            config.DB_CONNECT_URL.unicode_string(),
+            config.CONNECTION_URL.unicode_string(),
             echo=config.ECHO_SQL,
             pool_pre_ping=True,
         )

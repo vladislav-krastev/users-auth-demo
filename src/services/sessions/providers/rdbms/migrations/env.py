@@ -12,7 +12,7 @@ from alembic.runtime.migration import MigrationContext
 from pydantic_core import MultiHostUrl
 
 from config import AppConfig
-from config.sessions import RDBMSProvider
+from config.sessions import RDBMSProviderConfig
 from services.sessions.providers.rdbms.models import BaseModel
 from utils import password
 
@@ -132,7 +132,7 @@ def run_migrations_online(url: MultiHostUrl) -> None:
 
 
 try:
-    url = typing.cast(RDBMSProvider, AppConfig.SESSIONS.PROVIDER_CONFIG).DB_CONNECT_URL
+    url = typing.cast(RDBMSProviderConfig, AppConfig.SESSIONS.PROVIDER_CONFIG).CONNECTION_URL
 except AttributeError:
     print("\nERROR: cannot find configuration for RDBMS connection\n")
     exit(1)

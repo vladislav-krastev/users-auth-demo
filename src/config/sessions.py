@@ -10,14 +10,14 @@ from utils import logging, password, singleton
 from . import _utils
 
 
-class SessionsProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
+class _SessionsProviderConfig(_utils.BaseSettings, singleton.SingletonPydantic):
     """Configs for a `Sessions` storage provider."""
 
     _prefix: typing.ClassVar[str] = "SESSIONS_PROVIDER"
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
 
 
-class DynamoDBProvider(SessionsProviderConfig):
+class DynamoDBProviderConfig(_SessionsProviderConfig):
     """Configs for storing the `Sessions` in `DynamoDB`."""
 
     AWS_ACCESS_KEY: str
@@ -28,32 +28,36 @@ class DynamoDBProvider(SessionsProviderConfig):
         return "*****"
 
 
-class MemcachedProvider(SessionsProviderConfig):
+class MemcachedProviderConfig(_SessionsProviderConfig):
     """Configs for storing the `Sessions` in `Memcached`."""
 
-    MEMCACHED_SERVER: str
-    MEMCACHED_PORT: pydantic.PositiveInt
-    MEMCACHED_RETRIES_BEFORE_FAIL: pydantic.PositiveInt = 5
+    _prefix: typing.ClassVar[str] = f"{_SessionsProviderConfig.model_config.get('env_prefix', '')}MEMCACHED"
+    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
+    SERVER: str
+    PORT: pydantic.PositiveInt
+    RETRIES_BEFORE_FAIL: pydantic.PositiveInt = 5
 
 
-class RDBMSProvider(SessionsProviderConfig):
-    """Configs for storing the `Sessions` in `RDBMS` (currently only PostgreSQL)."""
+class RDBMSProviderConfig(_SessionsProviderConfig):
+    """Configs for storing the `Sessions` in an `RDBMS` (currently only PostgreSQL)."""
 
+    _prefix: typing.ClassVar[str] = f"{_SessionsProviderConfig.model_config.get('env_prefix', '')}RDBMS"
+    model_config = SettingsConfigDict(env_prefix=f"{_prefix}_")
     ECHO_SQL: bool = False  # TODO: dynamic/configurable
-    DB_CONNECTION_SCHEME: typing.Literal["postgresql+asyncpg"] = "postgresql+asyncpg"
-    DB_SERVER: str
-    DB_PORT: int
+    CONNECTION_SCHEME: typing.Literal["postgresql+asyncpg"] = "postgresql+asyncpg"
+    SERVER: str
+    PORT: int
     DB_NAME: str
     DB_USER: str
     DB_PASSWORD: str
 
     @pydantic.computed_field  # type: ignore[prop-decorator]
     @property
-    def DB_CONNECT_URL(self) -> MultiHostUrl:
+    def CONNECTION_URL(self) -> MultiHostUrl:
         return MultiHostUrl.build(
-            scheme=self.DB_CONNECTION_SCHEME,
-            host=self.DB_SERVER,
-            port=self.DB_PORT,
+            scheme=self.CONNECTION_SCHEME,
+            host=self.SERVER,
+            port=self.PORT,
             path=self.DB_NAME,
             username=self.DB_USER,
             password=self.DB_PASSWORD,
@@ -61,32 +65,31 @@ class RDBMSProvider(SessionsProviderConfig):
 
     @pydantic.field_serializer("DB_PASSWORD", when_used="always")
     def _serialize_password(self, _: str) -> str:
-        print("in _serialize_password")
         return "*****"
 
-    @pydantic.field_serializer("DB_CONNECT_URL", when_used="always")
+    @pydantic.field_serializer("CONNECTION_URL", when_used="always")
     def _serialize_url(self, url: MultiHostUrl) -> str:
         return password.get_obscured_password_db_url(url).unicode_string()
 
 
-class RedisProvider(SessionsProviderConfig):
+class RedisProviderConfig(_SessionsProviderConfig):
     """Configs for storing the `Sessions` in `Redis`."""
 
 
 class SessionsProvider(enum.StrEnum):
     """A `Sessions` storage provder."""
 
-    DYNAMODB = ("dynamodb", DynamoDBProvider)
-    MEMCACHED = ("memcached", MemcachedProvider)
-    RDBMS = ("rdbms", RDBMSProvider)
-    REDIS = ("redis", RedisProvider)
+    DYNAMODB = ("dynamodb", DynamoDBProviderConfig)
+    MEMCACHED = ("memcached", MemcachedProviderConfig)
+    RDBMS = ("rdbms", RDBMSProviderConfig)
+    REDIS = ("redis", RedisProviderConfig)
 
-    def __new__(cls, name: str, config_class: type[SessionsProviderConfig]):
+    def __new__(cls, name: str, config_class: type[_SessionsProviderConfig]):
         member = str.__new__(cls, name)
         member._value_ = name
         return member
 
-    def __init__(self, name: str, config_class: type[SessionsProviderConfig]):
+    def __init__(self, name: str, config_class: type[_SessionsProviderConfig]):
         self.config_class = config_class
 
 
@@ -97,7 +100,7 @@ class SessionsConfig(_utils.BaseSettings):
     model_config = SettingsConfigDict(env_prefix=f"{_prefix}_", frozen=False)
 
     PROVIDER: SessionsProvider
-    PROVIDER_CONFIG: SessionsProviderConfig = pydantic.Field(default=None)  # type: ignore
+    PROVIDER_CONFIG: _SessionsProviderConfig = pydantic.Field(default=None)  # type: ignore
 
     EXPIRED_DELETE: bool = False
     EXPIRED_DELETE_AFTER_MINS: pydantic.PositiveInt = pydantic.Field(default=None)  # type: ignore
@@ -117,5 +120,5 @@ class SessionsConfig(_utils.BaseSettings):
         self.model_config["frozen"] = True  # runtime error, no static-type-check error
 
     @pydantic.field_serializer("PROVIDER_CONFIG")
-    def _serialize_config(self, provider_config: SessionsProviderConfig) -> dict[str, typing.Any]:
+    def _serialize_config(self, provider_config: _SessionsProviderConfig) -> dict[str, typing.Any]:
         return provider_config.model_dump()
