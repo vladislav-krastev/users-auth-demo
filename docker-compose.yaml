@@ -36,21 +36,21 @@ services:
     image: postgres:17.0-alpine3.20
     container_name: ${COMPOSE_PROJECT_NAME}-rdbms
     environment:
-      - POSTGRES_DB=${SESSIONS_PROVIDER_DB_NAME:-${USERS_PROVIDER_DB_NAME:-}}
-      - POSTGRES_USER=${SESSIONS_PROVIDER_DB_USER:-${USERS_PROVIDER_DB_USER:-}}
-      - POSTGRES_PASSWORD=${SESSIONS_PROVIDER_DB_PASSWORD:-${USERS_PROVIDER_DB_PASSWORD:-}}
+      - POSTGRES_DB=${SESSIONS_PROVIDER_RDBMS_DB_NAME:-${USERS_PROVIDER_RDBMS_DB_NAME:-}}
+      - POSTGRES_USER=${SESSIONS_PROVIDER_RDBMS_DB_USER:-${USERS_PROVIDER_RDBMS_DB_USER:-}}
+      - POSTGRES_PASSWORD=${SESSIONS_PROVIDER_RDBMS_DB_PASSWORD:-${USERS_PROVIDER_RDBMS_DB_PASSWORD:-}}
     expose:
-      - ${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}
+      - ${SESSIONS_PROVIDER_RDBMS_PORT:-${USERS_PROVIDER_RDBMS_PORT:-5432}}
     ports:
-      - ${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}:${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}
+      - ${SESSIONS_PROVIDER_RDBMS_PORT:-${USERS_PROVIDER_RDBMS_PORT:-5432}}:${SESSIONS_PROVIDER_RDBMS_PORT:-${USERS_PROVIDER_RDBMS_PORT:-5432}}
     volumes:
       - _rdbms-data:/var/lib/postgresql/data
     command: >
-      -c wal_level=logical -p ${SESSIONS_PROVIDER_DB_PORT:-${USERS_PROVIDER_DB_PORT:-5432}}
+      -c wal_level=logical -p ${SESSIONS_PROVIDER_RDBMS_PORT:-${USERS_PROVIDER_RDBMS_PORT:-5432}}
     healthcheck:
       test: [
         "CMD-SHELL",
-        "psql -U ${SESSIONS_PROVIDER_DB_USER:-${USERS_PROVIDER_DB_USER:-}} -d ${SESSIONS_PROVIDER_DB_NAME:-${USERS_PROVIDER_DB_NAME:-}} -c 'SELECT 1' || exit 1"
+        "psql -U ${SESSIONS_PROVIDER_RDBMS_DB_USER:-${USERS_PROVIDER_RDBMS_DB_USER:-}} -d ${SESSIONS_PROVIDER_RDBMS_DB_NAME:-${USERS_PROVIDER_RDBMS_DB_NAME:-}} -c 'SELECT 1' || exit 1"
       ]
       interval: 10s
       timeout: 5s
@@ -64,19 +64,19 @@ services:
     image: postgres:17.0-alpine3.20
     container_name: ${COMPOSE_PROJECT_NAME}__sessions-rdbms
     environment:
-      - POSTGRES_DB=${SESSIONS_PROVIDER_DB_NAME:-}
-      - POSTGRES_USER=${SESSIONS_PROVIDER_DB_USER:-}
-      - POSTGRES_PASSWORD=${SESSIONS_PROVIDER_DB_PASSWORD:-}
+      - POSTGRES_DB=${SESSIONS_PROVIDER_RDBMS_DB_NAME:-}
+      - POSTGRES_USER=${SESSIONS_PROVIDER_RDBMS_DB_USER:-}
+      - POSTGRES_PASSWORD=${SESSIONS_PROVIDER_RDBMS_DB_PASSWORD:-}
     expose:
-      - ${SESSIONS_PROVIDER_DB_PORT:-5432}
+      - ${SESSIONS_PROVIDER_RDBMS_PORT:-5432}
     ports:
-      - ${SESSIONS_PROVIDER_DB_PORT:-5432}:${SESSIONS_PROVIDER_DB_PORT:-5432}
+      - ${SESSIONS_PROVIDER_RDBMS_PORT:-5432}:${SESSIONS_PROVIDER_RDBMS_PORT:-5432}
     volumes:
       - _sessions-rdbms-data:/var/lib/postgresql/data
     command: >
-      -c wal_level=logical -p ${SESSIONS_PROVIDER_DB_PORT:-5432}
+      -c wal_level=logical -p ${SESSIONS_PROVIDER_RDBMS_PORT:-5432}
     healthcheck:
-      test: ["CMD-SHELL", "psql -U ${SESSIONS_PROVIDER_DB_USER:-} -d ${SESSIONS_PROVIDER_DB_NAME:-} -c 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "psql -U ${SESSIONS_PROVIDER_RDBMS_DB_USER:-} -d ${SESSIONS_PROVIDER_RDBMS_DB_NAME:-} -c 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,19 +89,19 @@ services:
     image: postgres:17.0-alpine3.20
     container_name: ${COMPOSE_PROJECT_NAME}__users-rdbms
     environment:
-      - POSTGRES_DB=${USERS_PROVIDER_DB_NAME:-}
-      - POSTGRES_USER=${USERS_PROVIDER_DB_USER:-}
-      - POSTGRES_PASSWORD=${USERS_PROVIDER_DB_PASSWORD:-}
+      - POSTGRES_DB=${USERS_PROVIDER_RDBMS_DB_NAME:-}
+      - POSTGRES_USER=${USERS_PROVIDER_RDBMS_DB_USER:-}
+      - POSTGRES_PASSWORD=${USERS_PROVIDER_RDBMS_DB_PASSWORD:-}
     expose:
-      - ${USERS_PROVIDER_DB_PORT:-5432}
+      - ${USERS_PROVIDER_RDBMS_PORT:-5432}
     ports:
-      - ${USERS_PROVIDER_DB_PORT:-5432}:${USERS_PROVIDER_DB_PORT:-5432}
+      - ${USERS_PROVIDER_RDBMS_PORT:-5432}:${USERS_PROVIDER_RDBMS_PORT:-5432}
     volumes:
       - _users-rdbms-data:/var/lib/postgresql/data
     command: >
-      -c wal_level=logical -p ${USERS_PROVIDER_DB_PORT:-5432}
+      -c wal_level=logical -p ${USERS_PROVIDER_RDBMS_PORT:-5432}
     healthcheck:
-      test: ["CMD-SHELL", "psql -U ${USERS_PROVIDER_DB_USER:-} -d ${USERS_PROVIDER_DB_NAME:-} -c 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "psql -U ${USERS_PROVIDER_RDBMS_DB_USER:-} -d ${USERS_PROVIDER_RDBMS_DB_NAME:-} -c 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
