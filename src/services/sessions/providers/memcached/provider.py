@@ -59,7 +59,7 @@ class SessionsProviderMemcached(BaseSessionsProvider):
             is_user_session_created = False
             cache = set[UserSessionModel]() if cache is None else UserSessionModel.remove_expired(cache)
             for _ in range(
-                typing.cast(MemcachedProvider, AppConfig.SESSIONS.PROVIDER_CONFIG).MEMCACHED_RETRIES_BEFORE_FAIL
+                typing.cast(MemcachedProviderConfig, AppConfig.SESSIONS.PROVIDER_CONFIG).RETRIES_BEFORE_FAIL
             ):
                 cache.add(new_user_session)
                 if self._client.cas(new_session.u_id, cache, cas):
