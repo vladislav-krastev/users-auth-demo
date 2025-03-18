@@ -28,27 +28,41 @@ from services.users import AdminUser, NormalUser, UsersService
 from utils import pagination, password
 
 
+_PATH_ADMIN = "/admins"
+_TAG_ADMIN = "Admin"
+_TAG_ADMIN_SUPER = "Super Admin"
+
+
+router_admins = APIRouter()
+
+
 ####################
 #   Super Admin
 ####################
 
-__router_admins_super = APIRouter(
-    tags=["Super Admin"],
+
+@router_admins.get(
+    "/config",
+    tags=[_TAG_ADMIN_SUPER],
+    status_code=status.HTTP_200_OK,
     responses={
         # **admin_auth_exceptions,
         status.HTTP_403_FORBIDDEN: {"model": HTTPExceptionResponse},
     },
     dependencies=[AdminSuperAuthDependency],
 )
-
-
-@__router_admins_super.get(
-    "/config",
-    status_code=status.HTTP_200_OK,
-)
 async def get_current_config() -> Item[_AppConfig]:
     """Get the currently applied configurations."""
     return {"data": AppConfig}
+
+
+__router_admins_super = APIRouter(
+    responses={
+        # **admin_auth_exceptions,
+        status.HTTP_403_FORBIDDEN: {"model": HTTPExceptionResponse},
+    },
+    dependencies=[AdminSuperAuthDependency],
+)
 
 
 @__router_admins_super.post(
@@ -137,7 +151,6 @@ async def get_logins():
 ####################
 
 __router_admins_normal = APIRouter(
-    tags=["Admins"],
     responses={
         # **admin_auth_exceptions,
         # status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
@@ -377,6 +390,5 @@ async def get_sessions(
 #   Main
 ####################
 
-router_admins = APIRouter()
-router_admins.include_router(__router_admins_super, prefix="/super")
-router_admins.include_router(__router_admins_normal)
+router_admins.include_router(__router_admins_super, prefix=_PATH_ADMIN, tags=[_TAG_ADMIN_SUPER])
+router_admins.include_router(__router_admins_normal, prefix=_PATH_ADMIN, tags=[_TAG_ADMIN])

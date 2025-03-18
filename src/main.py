@@ -37,9 +37,9 @@ app = FastAPI(
         "persistAuthorization": True,
     },
 )
-app.include_router(router_auth, prefix="/auth")
-app.include_router(router_admins, prefix="/admins")
-app.include_router(router_users, prefix="/users")
+app.include_router(router_auth)
+app.include_router(router_admins)
+app.include_router(router_users)
 
 
 if __name__ == "__main__":

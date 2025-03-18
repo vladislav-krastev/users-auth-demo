@@ -16,8 +16,13 @@ from services.users import NormalUser, UsersService
 from utils import password
 
 
+_PATH_USER = "/users"
+_TAG_USER = "User"
+
+
 router_users = APIRouter(
-    tags=["Users"],
+    tags=[_TAG_USER],
+    prefix=_PATH_USER,
     responses={**user_auth_exceptions},
 )
 
