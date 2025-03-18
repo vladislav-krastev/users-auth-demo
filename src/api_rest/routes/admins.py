@@ -29,6 +29,7 @@ from utils import pagination, password
 
 
 _PATH_ADMIN = "/admins"
+_PATH_USER = "/users"
 _TAG_ADMIN = "Admin"
 _TAG_ADMIN_SUPER = "Super Admin"
 
@@ -150,6 +151,7 @@ async def get_logins():
 #   Normal Admin
 ####################
 
+
 __router_admins_normal = APIRouter(
     responses={
         # **admin_auth_exceptions,
@@ -235,8 +237,21 @@ async def get_admin(
     return {"data": admin}
 
 
-@__router_admins_normal.get(
-    "/users/",
+####################
+#   Users
+####################
+
+
+__router_users = APIRouter(
+    responses={
+        # **admin_auth_exceptions,
+        # status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
+    },
+)
+
+
+@__router_users.get(
+    "/",
     status_code=status.HTTP_200_OK,
     response_model=ItemPaginated[AdminGetUserResponse],
     responses={
@@ -281,8 +296,8 @@ async def get_users_all(
     }
 
 
-@__router_admins_normal.get(
-    "/users/deleted",
+@__router_users.get(
+    "/deleted",
     status_code=status.HTTP_200_OK,
     response_model=ItemPaginated[AdminGetUserResponse],
     responses={
@@ -312,8 +327,8 @@ async def get_users_deleted(
     }
 
 
-@__router_admins_normal.get(
-    "/users/{field}",
+@__router_users.get(
+    "/{field}",
     status_code=status.HTTP_200_OK,
     response_model=Item[AdminGetUserResponse],
     responses={
@@ -349,7 +364,7 @@ async def get_sessions_all(
     raise NotImplementedError()
 
 
-@__router_admins_normal.get(
+@__router_users.get(
     "/sessions/{field}",
     status_code=status.HTTP_200_OK,
     response_model=ItemPaginated[AdminGetSessionResponse],
@@ -392,3 +407,4 @@ async def get_sessions(
 
 router_admins.include_router(__router_admins_super, prefix=_PATH_ADMIN, tags=[_TAG_ADMIN_SUPER])
 router_admins.include_router(__router_admins_normal, prefix=_PATH_ADMIN, tags=[_TAG_ADMIN])
+router_admins.include_router(__router_users, prefix=_PATH_USER, tags=[_TAG_ADMIN])
