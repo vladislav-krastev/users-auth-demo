@@ -53,10 +53,12 @@ class SessionsProviderMemcached(BaseSessionsProvider):
     async def create(self, s: Session) -> Session | None:
         new_session = SessionModel.from_internal(s)
         new_user_session = UserSessionModel(s.id, str(new_session.expires_at))
-        cache, cas = typing.cast(tuple[set[UserSessionModel] | None, typing.Any], self._client.gets(new_session.u_id))
         is_user_session_created = True
-        if not (cache is None and self._client.add(new_session.u_id, {new_user_session})):
+        if not self._client.add(new_session.u_id, {new_user_session}):
             is_user_session_created = False
+            cache, cas = typing.cast(
+                tuple[set[UserSessionModel] | None, typing.Any], self._client.gets(new_session.u_id)
+            )
             cache = set[UserSessionModel]() if cache is None else UserSessionModel.remove_expired(cache)
             for _ in range(
                 typing.cast(MemcachedProviderConfig, AppConfig.SESSIONS.PROVIDER_CONFIG).RETRIES_BEFORE_FAIL
