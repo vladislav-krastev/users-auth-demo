@@ -9,7 +9,7 @@ from config.sessions import MemcachedProviderConfig
 from utils import logging
 
 from ..abstract import BaseSessionsProvider, Session
-from .models import SessionModel, UserSessionModel
+from .models import UserSessionModel
 from .serializer import CustomSerializer
 
 
@@ -46,37 +46,29 @@ class SessionsProviderMemcached(BaseSessionsProvider):
 
     @typing.override
     async def create(self, s: Session) -> Session | None:
-        new_session = SessionModel.from_internal(s)
-        new_user_session = UserSessionModel(s.id, str(new_session.expires_at))
+        user_id = str(s.user_id)
+        new_user_session = UserSessionModel(s.id, str(int(s.expires_at.timestamp())))
         is_user_session_created = True
-        if not self._client.add(new_session.u_id, {new_user_session}):
+        if not self._client.add(user_id, {new_user_session}):
             is_user_session_created = False
-            cache, cas = typing.cast(
-                tuple[set[UserSessionModel] | None, typing.Any], self._client.gets(new_session.u_id)
-            )
+            cache, cas = typing.cast(tuple[set[UserSessionModel] | None, typing.Any], self._client.gets(user_id))
             cache = set[UserSessionModel]() if cache is None else UserSessionModel.remove_expired(cache)
             for _ in range(
                 typing.cast(MemcachedProviderConfig, AppConfig.SESSIONS.PROVIDER_CONFIG).RETRIES_BEFORE_FAIL
             ):
                 cache.add(new_user_session)
-                if self._client.cas(new_session.u_id, cache, cas):
+                if self._client.cas(user_id, cache, cas):
                     is_user_session_created = True
                     break
-                cache, cas = typing.cast(tuple[set[UserSessionModel], typing.Any], self._client.gets(new_session.u_id))
+                cache, cas = typing.cast(tuple[set[UserSessionModel], typing.Any], self._client.gets(user_id))
         if is_user_session_created and self._client.add(
-            new_session.s_id,
-            new_session,
-            expire=new_session.expires_at - int(s.created_at.timestamp()) + 1,
+            s.id, s, expire=int((s.expires_at - s.created_at).total_seconds()) + 1
         ):
             return s
 
     @typing.override
     async def get(self, u_id: str, s_id: str) -> Session | None:
-        cache: SessionModel | None = self._client.get(s_id)
-        if cache is not None:
-            with log.any_error():
-                if cache.u_id == u_id:
-                    return cache.to_internal()
+        return self._client.get(s_id)
 
     @typing.override
     async def get_many(
@@ -106,9 +98,9 @@ class SessionsProviderMemcached(BaseSessionsProvider):
             )
         )
         return [
-            cached_session.to_internal()
+            cached_session
             for cached_session in typing.cast(
-                dict[_MemcacheKey, SessionModel],
+                dict[_MemcacheKey, Session],
                 self._client.get_many(session_ids[offset : len(session_ids) if limit is None else offset + limit]),
             ).values()
         ]

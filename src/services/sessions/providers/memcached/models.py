@@ -1,10 +1,5 @@
 import typing
-import uuid
-from datetime import UTC, datetime, timedelta
-
-from config import AppConfig
-from services.sessions import Session
-from services.sessions.types import SESSION_PROVIDER, SESSION_TYPE
+from datetime import UTC, datetime
 
 
 def NOW() -> int:
@@ -25,43 +20,3 @@ class UserSessionModel(typing.NamedTuple):
         """Filter provided `sessions` to a new set, containg only non-expired `UserSessionModel` instances."""
         now = NOW()
         return {s for s in sessions if int(s.exp) > now}
-
-
-class SessionModel(typing.NamedTuple):
-    """A (mem-)cached representation of an internal `Session`."""
-
-    s_id: str
-    u_id: str
-    expires_at: int
-    provider: SESSION_PROVIDER
-    type: SESSION_TYPE
-
-    @staticmethod
-    def from_internal(s: Session) -> "SessionModel":
-        return SessionModel(
-            s.id,
-            str(s.user_id),
-            int(s.expires_at.timestamp()),
-            s.provider,
-            s.type,
-        )
-
-    def to_internal(self) -> Session:
-        expires_at = datetime.fromtimestamp(self.expires_at, UTC).replace(microsecond=0)
-        if self.provider == "local":
-            expires_delta = (
-                AppConfig.LOCAL_AUTH.COOKIE.EXPIRE_MINUTES
-                if self.type == "cookie"
-                else AppConfig.LOCAL_AUTH.ACCESS_TOKEN.EXPIRE_MINUTES
-            )
-        else:
-            expires_delta = AppConfig.OAUTH2.config_for(self.provider).ACCESS_TOKEN_EXPIRE_MINUTES
-        return Session(
-            id=self.s_id,
-            user_id=uuid.UUID(self.u_id),
-            is_valid=True,
-            created_at=expires_at - timedelta(minutes=expires_delta),
-            expires_at=expires_at,
-            provider=self.provider,
-            type=self.type,
-        )
