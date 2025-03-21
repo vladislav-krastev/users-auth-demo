@@ -6,8 +6,6 @@ from config import AppConfig
 from services.sessions import Session
 from services.sessions.types import SESSION_PROVIDER, SESSION_TYPE
 
-from .types import CACHED_SESSION
-
 
 def NOW() -> int:
     return int(datetime.now(UTC).replace(microsecond=0).timestamp())
@@ -66,23 +64,4 @@ class SessionModel(typing.NamedTuple):
             expires_at=expires_at,
             provider=self.provider,
             type=self.type,
-        )
-
-    @staticmethod
-    def from_cache(cache: CACHED_SESSION) -> "SessionModel":
-        cached_provider, cached_type = cache[3].split("-")
-        return SessionModel(
-            cache[0],
-            cache[1],
-            int(cache[2]),
-            cached_provider,  # type: ignore
-            "cookie" if cached_type == "c" else "token",
-        )
-
-    def to_cache(self) -> CACHED_SESSION:
-        return (
-            self.s_id,
-            self.u_id,
-            str(self.expires_at),
-            f"{self.provider}-{'c' if self.type == 'cookie' else 't'}",
         )

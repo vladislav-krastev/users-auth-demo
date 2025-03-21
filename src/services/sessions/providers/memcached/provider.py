@@ -3,10 +3,6 @@ import typing
 
 from pymemcache.client.base import Client as _MemcacheClient
 from pymemcache.client.base import Key as _MemcacheKey
-from pymemcache.serde import (
-    python_memcache_deserializer,
-    python_memcache_serializer,
-)
 
 from config import AppConfig
 from config.sessions import MemcachedProviderConfig
@@ -14,7 +10,7 @@ from utils import logging
 
 from ..abstract import BaseSessionsProvider, Session
 from .models import SessionModel, UserSessionModel
-from .types import CACHED_SESSION
+from .serializer import CustomSerializer
 
 
 log = logging.getLogger("sessions-memcached")
@@ -33,8 +29,7 @@ class SessionsProviderMemcached(BaseSessionsProvider):
             timeout=5,
             no_delay=True,
             default_noreply=False,
-            serializer=python_memcache_serializer,
-            deserializer=python_memcache_deserializer,
+            serde=CustomSerializer,
         )
 
     @typing.override
@@ -70,19 +65,18 @@ class SessionsProviderMemcached(BaseSessionsProvider):
                 cache, cas = typing.cast(tuple[set[UserSessionModel], typing.Any], self._client.gets(new_session.u_id))
         if is_user_session_created and self._client.add(
             new_session.s_id,
-            new_session.to_cache(),
+            new_session,
             expire=new_session.expires_at - int(s.created_at.timestamp()) + 1,
         ):
             return s
 
     @typing.override
     async def get(self, u_id: str, s_id: str) -> Session | None:
-        cache: CACHED_SESSION | None = self._client.get(s_id)
+        cache: SessionModel | None = self._client.get(s_id)
         if cache is not None:
             with log.any_error():
-                s = SessionModel.from_cache(cache)
-                if s.u_id == u_id:
-                    return s.to_internal()
+                if cache.u_id == u_id:
+                    return cache.to_internal()
 
     @typing.override
     async def get_many(
@@ -112,9 +106,9 @@ class SessionsProviderMemcached(BaseSessionsProvider):
             )
         )
         return [
-            SessionModel.from_cache(cached_session).to_internal()
+            cached_session.to_internal()
             for cached_session in typing.cast(
-                dict[_MemcacheKey, CACHED_SESSION],
+                dict[_MemcacheKey, SessionModel],
                 self._client.get_many(session_ids[offset : len(session_ids) if limit is None else offset + limit]),
             ).values()
         ]
