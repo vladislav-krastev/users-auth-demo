@@ -1,1 +1,4 @@
-from .app import  AppConfig
+from .app import AppConfig
+
+
+__all__ = ["AppConfig"]
