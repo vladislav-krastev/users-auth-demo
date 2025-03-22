@@ -4,6 +4,7 @@ from functools import partial
 
 from config import AppConfig
 from config.users import UsersProvider
+from services.events import USER_EVENT, EventsService
 from utils import exceptions, logging, pagination, singleton
 
 from .models import AdminUser, BaseUser, NormalUser
@@ -57,7 +58,13 @@ class _UsersService(singleton.Singleton):
             When the `User` couldn't be created.
         """
         with log.any_error():
-            return await self._provider.create(user)
+            res = await self._provider.create(user)
+            if res:
+                EventsService.emit(
+                    USER_EVENT.REGISTER,
+                    values=USER_EVENT.REGISTER.value(user_id=str(user.id), username=user.username),
+                )
+        return res
 
     # TODO: default value for T when bumped to python 3.13:
     async def get_unique_by[T: BaseUser](
@@ -165,8 +172,24 @@ class _UsersService(singleton.Singleton):
         :return None:
             When the `User` could not be updated. Treat as an error/***non-valid*** response.
         """
+        user_id = str(user_id)
         with log.any_error():
-            return await self._provider.update(as_model, str(user_id), **fields)
+            if "password" in fields:
+                if len(fields) > 1:
+                    pass  # TODO: make sure password is updated separately
+                event, event_value = USER_EVENT.UPDATE_PASSWORD, USER_EVENT.UPDATE_PASSWORD.value(user_id=user_id)
+            else:
+                event, event_value = (
+                    USER_EVENT.UPDATE,
+                    USER_EVENT.UPDATE.value(user_id=user_id, fields=[f for f in fields]),
+                )
+            res = await self._provider.update(as_model, user_id, **fields)
+            if res:
+                EventsService.emit(
+                    event,
+                    values=event_value,
+                )
+            return res
 
     async def delete(self, user_id: str | uuid.UUID) -> bool:
         """Delete an existing `User`.
@@ -174,8 +197,15 @@ class _UsersService(singleton.Singleton):
         :return bool:
             If the `User` deletion was successfull or not.
         """
+        user_id = str(user_id)
         with log.any_error():
-            return await self._provider.delete(str(user_id))
+            res = await self._provider.delete(user_id)
+            if res:
+                EventsService.emit(
+                    USER_EVENT.DELETE,
+                    values=USER_EVENT.DELETE.value(user_id=user_id),
+                )
+            return res
         return False
 
     # async def track_login(self, user: BaseUser, provider: USER_LOGIN_PROVIDER) -> bool:

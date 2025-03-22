@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from config import AppConfig
 from config.sessions import SessionsProvider
+from services.events import SESSION_EVENT, EventsService
 from services.users import BaseUser
 from utils import logging, singleton
 
@@ -92,8 +93,14 @@ class _SessionsService(singleton.Singleton):
             res = await self._provider.create(s)
             if _failed_session_invalidations:
                 asyncio.create_task(_fsi_clean_up())
+            if res:
+                EventsService.emit(
+                    SESSION_EVENT.LOGIN,
+                    values=SESSION_EVENT.LOGIN.value(
+                        user_id=str(s.user_id), session_id=s.id, provider=s.provider, type=s.type
+                    ),
+                )
             return res
-        return None
 
     async def get(
         self,
@@ -138,16 +145,22 @@ class _SessionsService(singleton.Singleton):
         :return bool:
             If the `Session` invalidation was successfull or not.
         """
+        user_id = str(user_id)
         with log.any_error():
             try:
-                res = await self._provider.invalidate(str(user_id), session_id)
+                res = await self._provider.invalidate(user_id, session_id)
                 if _failed_session_invalidations:
                     asyncio.create_task(_fsi_clean_up())
+                if res:
+                    EventsService.emit(
+                        SESSION_EVENT.LOGOUT,
+                        values=SESSION_EVENT.LOGOUT.value(user_id=user_id, session_id=session_id),
+                    )
                 return res
             except Exception as err:
                 _failed_session_invalidations.append(
                     _FSI(
-                        user_id=str(user_id),
+                        user_id=user_id,
                         session_id=session_id,
                         failure_timestamp=int(datetime.now(UTC).timestamp()),
                     )
@@ -163,16 +176,22 @@ class _SessionsService(singleton.Singleton):
         :return list:
             The IDs of all invalidated `Sessions`.
         """
+        user_id = str(user_id)
         with log.any_error():
             try:
-                res = await self._provider.invalidate_all(str(user_id))
+                res = await self._provider.invalidate_all(user_id)
                 if _failed_session_invalidations:
                     asyncio.create_task(_fsi_clean_up())
+                if res:
+                    EventsService.emit(
+                        SESSION_EVENT.LOGOUT,
+                        values=(SESSION_EVENT.LOGOUT.value(user_id=user_id, session_id=s_id) for s_id in res),
+                    )
                 return res
             except Exception as err:
                 _failed_session_invalidations.append(
                     _FSI(
-                        user_id=str(user_id),
+                        user_id=user_id,
                         session_id=None,
                         failure_timestamp=int(datetime.now(UTC).timestamp()),
                     )

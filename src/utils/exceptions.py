@@ -1,6 +1,7 @@
 import typing
 
 from config.auth import OAuth2Provider
+from services.events.events import EVENT
 
 
 ####################
@@ -34,6 +35,23 @@ class InvalidJWTError(InvalidTokenError):
 
 class InvalidSessionError(AuthError):
     """ """
+
+
+####################
+#   Events
+####################
+
+
+class EventError(ValueError):
+    """Base exception for any errors related to internal `Events`."""
+
+
+class InvalidEventError(EventError):
+    """An event-handler doesn't know how to handle a received `Event`."""
+
+    def __init__(self, handler_name: str, event: EVENT):
+        """An event-handler doesn't know how to handle a received `Event`."""
+        super().__init__(f"Event-handler '{handler_name}' cannot process event '{event.name}'")
 
 
 ####################

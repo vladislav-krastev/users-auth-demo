@@ -1,17 +1,19 @@
 import asyncio
 
 from config import AppConfig
+from services.events import EventsService
 from services.sessions import SessionsService
 from services.users import AdminUser, UsersService
 from utils import logging, password
 
 
 async def setup_services() -> bool:
-    """Finish initialising the `Sessions` and the `Users` services."""
+    """Finish initialising the services."""
     async with asyncio.TaskGroup() as tg:
+        e = tg.create_task(EventsService.setup())
         u = tg.create_task(UsersService.setup())
         s = tg.create_task(SessionsService.setup())
-    return u.result() and s.result()
+    return e.result() and u.result() and s.result()
 
 
 super_admin_log = logging.getLogger("super-admin")
