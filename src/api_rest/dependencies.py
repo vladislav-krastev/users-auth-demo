@@ -25,12 +25,12 @@ from utils import exceptions
 
 
 PaginationOffsetLmitDependency = typing.Annotated[PaginationOffsetLmitRequest, Depends()]
-"""Provides mandatory `offset` and `limit` query params."""
+"""Required `offset` and `limit` query params."""
 
 PasswordRequestSimpleDependency = typing.Annotated[HTTPBasicCredentials, Depends(local_cookie_scheme_basic_creds)]
-"""Required `HTTPBasic Auth` credentials for obtaining a new local-auth Cookie."""
+"""Required credentials for obtaining a new local-auth Cookie."""
 PasswordRequestOAuth2Dependency = typing.Annotated[OAuth2PasswordRequestFormStrict, Depends()]
-"""Required `OAuth2 Password Auth` credentials for obtaining a new local-auth AccessToken."""
+"""Required credentials for obtaining a new local-auth AccessToken."""
 
 
 def raise_if_local_auth_disabled(for_cookie: bool = False, for_token: bool = False) -> None:
@@ -38,13 +38,12 @@ def raise_if_local_auth_disabled(for_cookie: bool = False, for_token: bool = Fal
 
     :raise ValueError:
         When trying to check both `for_cookie` and `for_token`.
-
     :raise HTTP_403_FORBIDDEN:
         When local auth is disabled or is enabled in general,
-        but is disabled for auth with a Cookie or an AccessToken (if `for_cookie` or `for_token` was provided).
+        but is disabled for auth with a Cookie (if `for_cookie`) or an AccessToken (if `for_token`).
     """
     if for_cookie and for_token:
-        raise ValueError("Can't depend both on a 'cookie' and on a 'token'")
+        raise ValueError("Cannot authenticate both with a 'cookie' and a 'token' at the same time")
     msg = [
         "Registering a local user",
         "Local authentication with a Cookie",
