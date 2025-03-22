@@ -107,7 +107,22 @@ async def delete_admin_or_user(
 
 
 @__router_admins_super.delete(
-    "/sessions/{user_id}/{session_id}",
+    "/{user_id}/sessions/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
+    },
+)
+async def invalidate_sessions_all(
+    user_id: str,
+) -> None:
+    """Invalidate all `Sessions` of the `User` with ID `user_id`."""
+    if not await SessionsService.invalidate_all(user_id):
+        raise SERVICE_UNAVAILABLE_EXCEPTION
+
+
+@__router_admins_super.delete(
+    "/{user_id}/sessions/{session_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
@@ -119,21 +134,6 @@ async def invalidate_sessions_single(
 ) -> None:
     """Invalidate the `Session` with ID `session_id` of the `User` with ID `user_id`."""
     if not await SessionsService.invalidate(user_id, session_id):
-        raise SERVICE_UNAVAILABLE_EXCEPTION
-
-
-@__router_admins_super.delete(
-    "/sessions/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses={
-        status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
-    },
-)
-async def invalidate_sessions_all(
-    user_id: str,
-) -> None:
-    """Invalidate all `Sessions` of the `User` with ID `user_id`."""
-    if not await SessionsService.invalidate_all(user_id):
         raise SERVICE_UNAVAILABLE_EXCEPTION
 
 
