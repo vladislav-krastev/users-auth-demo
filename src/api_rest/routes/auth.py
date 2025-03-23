@@ -25,10 +25,10 @@ from services.users import BaseUser, NormalUser, UsersService
 from utils import password
 
 
-_PATH_AUTH = "/auth"
-_TAG_AUTH = "Authentication"
-_TAG_AUTH_LOCAL = "Authentication - Local"
-_TAG_AUTH_EXTERNAL = "Authentication - External"
+PATH_AUTH = "auth"
+TAG_AUTH = "Authentication"
+TAG_AUTH_LOCAL = "Authentication - Local"
+TAG_AUTH_EXTERNAL = "Authentication - External"
 
 
 router_auth = APIRouter()
@@ -39,6 +39,8 @@ router_auth = APIRouter()
 ####################
 
 __router_auth_local = APIRouter(
+    prefix=f"/{PATH_AUTH}",
+    tags=[TAG_AUTH_LOCAL],
     responses={
         status.HTTP_403_FORBIDDEN: {"model": HTTPExceptionResponse},
         status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
@@ -151,6 +153,8 @@ async def get_token(
 ####################
 
 __router_auth_external = APIRouter(
+    prefix=f"/{PATH_AUTH}",
+    tags=[TAG_AUTH_EXTERNAL],
     dependencies=[ExternalAuthIsEnabledDependency],
 )
 
@@ -289,7 +293,9 @@ async def oauth2_redirect(
 ####################
 
 
-__router_auth_external_swaggerui = APIRouter()
+__router_auth_external_swaggerui = APIRouter(
+    prefix=f"/{PATH_AUTH}",
+)
 
 
 async def _parse_swaggerui_token_request(request: Request) -> SwaggerUIOAuth2TokenRequest:
@@ -396,9 +402,11 @@ async def oauth2_swaggerui_token(
 
 @router_auth.post(
     "/logout",
-    tags=[_TAG_AUTH],
+    tags=[TAG_AUTH],
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={status.HTTP_401_UNAUTHORIZED: {"model": HTTPExceptionResponse}},
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": HTTPExceptionResponse},
+    },
 )
 async def logout(
     *,
@@ -415,6 +423,6 @@ async def logout(
     asyncio.create_task(SessionsService.invalidate(auth.token.sub, auth.token.jti))
 
 
-router_auth.include_router(__router_auth_local, prefix=_PATH_AUTH, tags=[_TAG_AUTH_LOCAL])
-router_auth.include_router(__router_auth_external, prefix=_PATH_AUTH, tags=[_TAG_AUTH_EXTERNAL])
-router_auth.include_router(__router_auth_external_swaggerui, prefix=_PATH_AUTH)
+router_auth.include_router(__router_auth_local)
+router_auth.include_router(__router_auth_external)
+router_auth.include_router(__router_auth_external_swaggerui)
