@@ -11,7 +11,7 @@ from api_rest.dependencies import (
     PaginationOffsetLmitDependency,
 )
 from api_rest.exceptions import SERVICE_UNAVAILABLE_EXCEPTION
-from api_rest.schemas.admin import (
+from api_rest.schemas.admins import (
     AdminCreateRequest,
     AdminGetSessionResponse,
     AdminGetUserResponse,

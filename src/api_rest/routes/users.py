@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from api_rest.dependencies import NormalUserDependency
 from api_rest.exceptions import SERVICE_UNAVAILABLE_EXCEPTION, user_auth_exceptions
 from api_rest.schemas.common import HTTPExceptionResponse, Item
-from api_rest.schemas.user import (
+from api_rest.schemas.users import (
     UserBaseResponse,
     UserUpdatePasswordRequest,
     UserUpdateRequest,
