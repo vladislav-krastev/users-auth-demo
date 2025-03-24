@@ -6,7 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from api_grpc.server import GrpcServer
-from api_rest.routes import router_admins, router_auth, router_users
+from api_rest.routes import router_admins, router_auth, router_sessions, router_users
 from config import AppConfig
 from utils import lifespan_hooks, logging
 
@@ -40,6 +40,7 @@ app = FastAPI(
 app.include_router(router_auth)
 app.include_router(router_admins)
 app.include_router(router_users)
+app.include_router(router_sessions)
 
 
 if __name__ == "__main__":
