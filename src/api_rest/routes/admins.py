@@ -10,7 +10,7 @@ from api_rest.dependencies import (
     PaginationOffsetLmitDependency,
 )
 from api_rest.exceptions import SERVICE_UNAVAILABLE_EXCEPTION
-from api_rest.schemas.admins import AdminCreateRequest, AdminResponse
+from api_rest.schemas.admins import AdminCreateRequest, AdminShortResponse
 from api_rest.schemas.common import HTTPExceptionResponse, Item, ItemPaginated
 from config.app import AppConfig, _AppConfig
 from services.sessions import SessionsService
@@ -58,7 +58,7 @@ __router_admins_super = APIRouter(
 @__router_admins_super.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    response_model=Item[AdminResponse],
+    response_model=Item[AdminShortResponse],
     responses={
         status.HTTP_400_BAD_REQUEST: {"model": HTTPExceptionResponse},
         status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
@@ -118,7 +118,7 @@ __router_admins = APIRouter(
 @__router_admins.get(
     "/",
     status_code=status.HTTP_200_OK,
-    response_model=ItemPaginated[AdminResponse],
+    response_model=ItemPaginated[AdminShortResponse],
     responses={
         status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
     },
@@ -164,7 +164,7 @@ async def get_admins_all(
 @__router_admins.get(
     "/me",
     status_code=status.HTTP_200_OK,
-    response_model=Item[AdminResponse],
+    response_model=Item[AdminShortResponse],
 )
 async def get_me(*, auth: AdminUserDependency) -> Item[AdminUser]:
     """Get current ADMIN."""
@@ -174,7 +174,7 @@ async def get_me(*, auth: AdminUserDependency) -> Item[AdminUser]:
 @__router_admins.get(
     "/{username}",
     status_code=status.HTTP_200_OK,
-    response_model=Item[AdminResponse],
+    response_model=Item[AdminShortResponse],
     responses={status.HTTP_404_NOT_FOUND: {"model": HTTPExceptionResponse}},
     dependencies=[AdminAuthDependency],
 )

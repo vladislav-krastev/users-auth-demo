@@ -5,9 +5,8 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from api_rest.dependencies import AdminAuthDependency, NormalUserDependency, PaginationOffsetLmitDependency
 from api_rest.exceptions import SERVICE_UNAVAILABLE_EXCEPTION, user_auth_exceptions
-from api_rest.schemas.admins import AdminGetUserResponse
 from api_rest.schemas.common import HTTPExceptionResponse, Item, ItemPaginated
-from api_rest.schemas.users import UserBaseResponse, UserUpdatePasswordRequest, UserUpdateRequest
+from api_rest.schemas.users import UserFullResponse, UserShortResponse, UserUpdatePasswordRequest, UserUpdateRequest
 from config import AppConfig
 from services.sessions import SessionsService
 from services.users import NormalUser, UsersService
@@ -36,7 +35,7 @@ __router_admins = APIRouter(
 @__router_admins.get(
     "/",
     status_code=status.HTTP_200_OK,
-    response_model=ItemPaginated[AdminGetUserResponse],
+    response_model=ItemPaginated[UserFullResponse],
     responses={
         status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
     },
@@ -80,7 +79,7 @@ async def get_users_all(
 @__router_admins.get(
     "/deleted",
     status_code=status.HTTP_200_OK,
-    response_model=ItemPaginated[AdminGetUserResponse],
+    response_model=ItemPaginated[UserFullResponse],
     responses={
         status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HTTPExceptionResponse},
     },
@@ -109,7 +108,7 @@ async def get_users_deleted(
 @__router_admins.get(
     "/{field}",
     status_code=status.HTTP_200_OK,
-    response_model=Item[AdminGetUserResponse],
+    response_model=Item[UserFullResponse],
     responses={
         status.HTTP_400_BAD_REQUEST: {"model": HTTPExceptionResponse},
         status.HTTP_404_NOT_FOUND: {"model": HTTPExceptionResponse},
@@ -145,7 +144,7 @@ __router_users = APIRouter(
 @__router_users.get(
     "/me",
     status_code=status.HTTP_200_OK,
-    response_model=Item[UserBaseResponse],
+    response_model=Item[UserShortResponse],
 )
 async def get_me(
     *,
@@ -158,7 +157,7 @@ async def get_me(
 @__router_users.patch(
     "/me",
     status_code=status.HTTP_200_OK,
-    response_model=Item[UserBaseResponse],
+    response_model=Item[UserShortResponse],
     responses={
         status.HTTP_409_CONFLICT: {"model": HTTPExceptionResponse},
     },

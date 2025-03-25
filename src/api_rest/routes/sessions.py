@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from api_rest.dependencies import AdminAuthDependency, AdminSuperAuthDependency, PaginationOffsetLmitDependency
 from api_rest.exceptions import SERVICE_UNAVAILABLE_EXCEPTION
-from api_rest.schemas.admins import AdminGetSessionResponse
 from api_rest.schemas.common import HTTPExceptionResponse, ItemPaginated
+from api_rest.schemas.sessions import SessionFullResponse
 from services.sessions import Session, SessionsService
 from services.users import AdminUser, NormalUser, UsersService
 from utils import pagination
@@ -84,7 +84,7 @@ async def get_sessions_all(
 @__router_admins.get(
     "/{field}",
     status_code=status.HTTP_200_OK,
-    response_model=ItemPaginated[AdminGetSessionResponse],
+    response_model=ItemPaginated[SessionFullResponse],
 )
 async def get_sessions(
     field: str,

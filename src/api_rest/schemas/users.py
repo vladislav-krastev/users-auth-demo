@@ -3,11 +3,12 @@ from datetime import datetime
 import pydantic
 
 from config import AppConfig
+from services.users import NormalUser
 from utils import validators
 
 
-class UserBaseResponse(pydantic.BaseModel):
-    """Base Response body for getting a `User`."""
+class UserShortResponse(pydantic.BaseModel):
+    """Response body containing the short details of a normal `User`."""
 
     email: pydantic.EmailStr
     username: str
@@ -16,6 +17,10 @@ class UserBaseResponse(pydantic.BaseModel):
     @pydantic.field_serializer("created_at", when_used="json")
     def _serialize_dates(self, v: datetime) -> str:
         return str(v.replace(microsecond=0))
+
+
+class UserFullResponse(NormalUser):
+    """Response body containing the full details of a normal `User`."""
 
 
 class UserRegisterRequest(pydantic.BaseModel):
@@ -29,10 +34,6 @@ class UserRegisterRequest(pydantic.BaseModel):
         min_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MIN,
         max_length=AppConfig.LOCAL_AUTH.PASSWORD.LENGTH_MAX,
     )
-
-
-class UserRegisterResponse(UserBaseResponse):
-    """Response body for registering a new `User`."""
 
 
 class UserUpdateRequest(pydantic.BaseModel):
